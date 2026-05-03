@@ -223,6 +223,34 @@ def _esc(v: Any) -> str:
     return html.escape(_stringify(v), quote=True)
 
 
+# ---------- v1.1 视觉常量 ----------
+
+# 章节中文编号映射（壹～拾）
+ZH_NUMERAL = ["壹", "贰", "叁", "肆", "伍", "陆", "柒", "捌", "玖", "拾"]
+
+# chapter-summary 块匹配（取最后一个作为章末总结，包进 chapter-coda）
+_SUMMARY_RE = re.compile(r'(<p class="chapter-summary">.*?</p>)', re.DOTALL)
+
+
+def _split_summary(narrative_html: str) -> tuple:
+    """从 narrative_html 尾部抽离最后一个 <p class="chapter-summary">...</p>。
+    返回 (body_without_summary, coda_html)；若未找到 summary 则 coda 为空串。
+    """
+    if not isinstance(narrative_html, str) or not narrative_html:
+        return narrative_html or "", ""
+    matches = _SUMMARY_RE.findall(narrative_html)
+    if not matches:
+        return narrative_html, ""
+    summary = matches[-1]
+    # 仅替换最后一次出现：用 rfind + 切片，避免与前文相同 summary 误删
+    pos = narrative_html.rfind(summary)
+    if pos < 0:
+        return narrative_html, ""
+    body = narrative_html[:pos] + narrative_html[pos + len(summary):]
+    coda = f'<div class="chapter-coda">{summary}</div>'
+    return body, coda
+
+
 # ---------- 数据预处理 ----------
 
 REQUIRED_TOP_V02 = ["domain", "chapters", "facts"]
@@ -393,33 +421,112 @@ def normalize(data: Dict[str, Any]) -> Dict[str, Any]:
 # ---------- HTML 片段预渲染（v0.2 主路径） ----------
 
 def _render_chapters_html(chapters: Sequence[Any]) -> str:
-    """v1.0 主流程：把 chapters[] 渲染成连续 section，统一为 .chapter class。
+    """v1.1 主流程：每章渲染为 chapter-cover（汉字编号 + h2）+ chapter-body
+    （narrative + 末尾 chapter-coda）结构。
     narrative_html 直接嵌入（不做 HTML 转义）—— sample 已织入脚注/机制/观点。
     """
     if not chapters:
         return (
-            '<section class="chapter" id="chapter-empty">'
+            '<section class="chapter" id="chapter-empty" data-chapter-num="0">'
+            '<header class="chapter-cover">'
+            '<div class="chapter-num-zh"></div>'
             '<h2>章节内容缺失</h2>'
+            '</header>'
+            '<div class="chapter-body">'
             '<p class="muted">domain.json 中 chapters[] 为空，无法渲染主体内容。</p>'
+            '</div>'
             '</section>'
         )
     blocks: List[str] = []
-    for idx, ch in enumerate(chapters, start=1):
+    for idx, ch in enumerate(chapters):
         if not isinstance(ch, dict):
             continue
-        cid = str(ch.get("id", f"chapter-{idx}"))
+        chapter_num = idx + 1
+        cid = str(ch.get("id", f"chapter-{chapter_num}"))
         title = _esc(ch.get("title", PLACEHOLDER))
         narrative = ch.get("narrative_html") or ""
         if not isinstance(narrative, str):
             narrative = _stringify(narrative)
+        body, coda = _split_summary(narrative)
+        # 中文编号：超过 10 章则留空（sample 固定 10 章）
+        zh = ZH_NUMERAL[idx] if idx < len(ZH_NUMERAL) else str(chapter_num)
         # 关键：narrative_html 直接嵌入，不转义
         blocks.append(
-            f'<section class="chapter" id="chapter-{_esc(cid)}">'
-            f'<h2>{title}</h2>\n'
-            f'{narrative}\n'
+            f'<section class="chapter" id="chapter-{_esc(cid)}" data-chapter-num="{chapter_num}">\n'
+            f'  <header class="chapter-cover">\n'
+            f'    <div class="chapter-num-zh">{zh}</div>\n'
+            f'    <h2>{title}</h2>\n'
+            f'  </header>\n'
+            f'  <div class="chapter-body">\n'
+            f'{body}\n'
+            f'{coda}\n'
+            f'  </div>\n'
             f'</section>'
         )
     return "\n".join(blocks)
+
+
+def _render_chapter_nav_html(chapters: Sequence[Any]) -> str:
+    """v1.1：hero 后的 10 章预览导航卡片。
+    标题截前 12 个汉字（中点前部分优先）。
+    """
+    if not chapters:
+        return '<nav class="chapter-nav" aria-label="章节导航"></nav>'
+    items: List[str] = []
+    for i, c in enumerate(chapters[:10]):
+        if not isinstance(c, dict):
+            continue
+        cid = str(c.get("id", f"chapter-{i+1}"))
+        title = c.get("title", PLACEHOLDER) or PLACEHOLDER
+        if not isinstance(title, str):
+            title = _stringify(title)
+        # 保留中点前部分（"它怎么走到今天 · 副标题" → "它怎么走到今天"）
+        if "·" in title:
+            title = title.split("·", 1)[0].strip()
+        if len(title) > 12:
+            title = title[:12]
+        zh = ZH_NUMERAL[i] if i < len(ZH_NUMERAL) else str(i + 1)
+        items.append(
+            f'<a href="#chapter-{_esc(cid)}" class="nav-item">'
+            f'<span class="num">{zh}</span>'
+            f'<span class="title">{_esc(title)}</span>'
+            f'</a>'
+        )
+    return (
+        '<nav class="chapter-nav" aria-label="章节导航">\n'
+        + "\n".join(items)
+        + "\n</nav>"
+    )
+
+
+def _render_side_toc_html(chapters: Sequence[Any]) -> str:
+    """v1.1：桌面端右侧浮动迷你目录（圆点 + 简称）。"""
+    if not chapters:
+        return '<aside class="side-toc" aria-label="侧边目录"><ol></ol></aside>'
+    items: List[str] = []
+    for i, c in enumerate(chapters[:10]):
+        if not isinstance(c, dict):
+            continue
+        cid = str(c.get("id", f"chapter-{i+1}"))
+        title = c.get("title", PLACEHOLDER) or PLACEHOLDER
+        if not isinstance(title, str):
+            title = _stringify(title)
+        if "·" in title:
+            title = title.split("·", 1)[0].strip()
+        if len(title) > 8:
+            title = title[:8]
+        zh = ZH_NUMERAL[i] if i < len(ZH_NUMERAL) else str(i + 1)
+        items.append(
+            f'<li data-chapter-id="chapter-{_esc(cid)}">'
+            f'<span class="dot"></span>'
+            f'<span class="label">{zh} · {_esc(title)}</span>'
+            f'</li>'
+        )
+    return (
+        '<aside class="side-toc" aria-label="侧边目录"><ol>\n'
+        + "\n".join(items)
+        + "\n</ol></aside>"
+    )
 
 
 def _render_facts_complete_list_html(facts: Sequence[Dict[str, Any]]) -> str:
@@ -750,12 +857,20 @@ def _render_legacy_chapters_html(data: Dict[str, Any]) -> str:
 def build_html_fragments(data: Dict[str, Any]) -> None:
     """把结构化字段预渲染成 HTML 字符串，注入 ctx 的 *_html 字段。
     v0.2 主路径：chapters_html / facts_complete_list_html / known_unknowns_data_html
+    v1.1 新增：chapter_nav_html / side_toc_html / word_count_str
     旧 schema fallback：合成等价 chapters。
     """
     if data.get("_schema_v02"):
-        data["chapters_html"] = _render_chapters_html(data.get("chapters", []))
+        chapters = data.get("chapters", [])
+        data["chapters_html"] = _render_chapters_html(chapters)
+        # v1.1：导航 / 侧边目录基于真实 chapters[]
+        data["chapter_nav_html"] = _render_chapter_nav_html(chapters)
+        data["side_toc_html"] = _render_side_toc_html(chapters)
     else:
         data["chapters_html"] = _render_legacy_chapters_html(data)
+        # 旧 schema：占位为空 nav/toc，避免模板引用空字段崩
+        data["chapter_nav_html"] = '<nav class="chapter-nav" aria-label="章节导航"></nav>'
+        data["side_toc_html"] = '<aside class="side-toc" aria-label="侧边目录"><ol></ol></aside>'
 
     data["facts_complete_list_html"] = _render_facts_complete_list_html(
         data.get("facts", [])
@@ -769,6 +884,18 @@ def build_html_fragments(data: Dict[str, Any]) -> None:
     data["self_check_html"] = _render_self_check_html(
         data.get("self_check_questions", [])
     )
+
+    # v1.1：基于 chapters_html + 其它正文片段估算字数（cover-meta 用千分位展示）
+    blob_parts = [
+        data.get("chapters_html", ""),
+        data.get("facts_complete_list_html", ""),
+        data.get("known_unknowns_data_html", ""),
+        data.get("recommendations_html", ""),
+        data.get("self_check_html", ""),
+    ]
+    wc = word_count("\n".join(blob_parts))
+    data["word_count"] = wc
+    data["word_count_str"] = f"{wc:,}"
 
     # 兼容性：保留几个旧占位符的别名（万一模板里还引用）
     data.setdefault("ai_disclaimer_extra_html", "")
@@ -950,11 +1077,15 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     else:
         n_mech = len(re.findall(r'class\s*=\s*["\'][^"\']*\bmechanism\b', chapters_blob))
         n_view = len(re.findall(r'class\s*=\s*["\'][^"\']*\bviewpoint\b', chapters_blob))
+    # v1.1 新占位符注入数：从 out 中扫，便于看见 nav/toc 是否真的进了模板
+    nav_hits = len(re.findall(r'class="nav-item"', out))
+    toc_hits = len(re.findall(r'data-chapter-id="chapter-', out))
     print(
         f"[render.py] OK → {out_path}\n"
         f"  facts={n_facts} mechanisms={n_mech} viewpoints={n_view} chapters={n_chapters}\n"
         f"  word_count≈{wc}\n"
-        f"  grade_pct: {pcts}"
+        f"  grade_pct: {pcts}\n"
+        f"  v1.1: chapter_nav={nav_hits} side_toc={toc_hits}"
     )
     return 0
 

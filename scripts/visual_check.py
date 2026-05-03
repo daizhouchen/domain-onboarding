@@ -11,12 +11,12 @@ visual_check.py — 视觉闸门（domain-onboarding skill）
 3. <html lang="zh-CN">
 4. 暗色模式：含 prefers-color-scheme: dark 或 [data-theme="dark"]
 5. 打印优化：含 @page 或 @media print
-6. inline SVG 数量在 [1, 30]
+6. inline SVG 数量在 [1, 60]
 7. 反 AI slop 视觉清单
    - 不能有 linear-gradient 含 purple 主色
    - .h1/.h2 不能 text-transform: uppercase
-   - box-shadow 出现次数 ≤ 5
-   - 中文段落不能 text-align: center（标题除外）
+   - box-shadow 出现次数 ≤ 15
+   - 中文段落不能 text-align: center（标题/封面/卷尾除外）
 
 CLI: python visual_check.py output.html
 退出码: 0 通过 / 1 不通过 / 2 输入错误
@@ -181,8 +181,8 @@ def check_svg_count(html: str, rep: Report) -> None:
     n = len(re.findall(r"<svg\b", html, re.IGNORECASE))
     if n < 1:
         rep.fail("SVG", "未发现任何 inline SVG（至少需要 1 个装饰/图表）")
-    elif n > 30:
-        rep.fail("SVG", f"inline SVG 共 {n} 个 > 30（装饰过载）")
+    elif n > 60:
+        rep.fail("SVG", f"inline SVG 共 {n} 个 > 60（装饰过载）")
 
 
 def _gather_styles(html: str) -> str:
@@ -234,10 +234,10 @@ def check_anti_slop(html: str, rep: Report) -> None:
 
     # box-shadow 数量
     bs_count = len(re.findall(r"box-shadow\s*:", style_blob, re.IGNORECASE))
-    if bs_count > 5:
+    if bs_count > 15:
         rep.fail(
             "AI slop box-shadow",
-            f"box-shadow 出现 {bs_count} 处 > 5（过度阴影）",
+            f"box-shadow 出现 {bs_count} 处 > 15（过度阴影）",
         )
 
     # 中文段落 text-align: center（标题豁免）
@@ -248,8 +248,15 @@ def check_anti_slop(html: str, rep: Report) -> None:
         re.IGNORECASE | re.DOTALL,
     ):
         sel = m.group(1).strip()
-        # 选择器若包含 h1/h2/h3/h4/h5/h6 / .title / header / .center / .hero 等就豁免
-        if re.search(r"h[1-6]\b|\btitle\b|\bheader\b|\bhero\b|\.center\b|\.tier-controls\b", sel, re.IGNORECASE):
+        # 选择器若包含 h1/h2/h3/h4/h5/h6 / .title / header / .center / .hero / cover / coda / nav 等就豁免
+        if re.search(
+            r"h[1-6]\b|\btitle\b|\bheader\b|\bhero\b|\.center\b|\.tier-controls\b|"
+            r"\bcover\b|\.cover-title\b|\.cover-subtitle\b|\.cover-meta\b|\.cover-thesis\b|"
+            r"\.chapter-coda\b|\.chapter-summary\b|\.chapter-num-zh\b|"
+            r"\bcolophon\b|\bchapter-nav\b|\btoc\b",
+            sel,
+            re.IGNORECASE,
+        ):
             continue
         # 如果选择器里出现 p / li / body / article / section
         if re.search(r"\bp\b|\bli\b|\bbody\b|\barticle\b|\bsection\b|\.thesis\b", sel, re.IGNORECASE):

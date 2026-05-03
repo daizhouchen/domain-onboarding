@@ -3,35 +3,56 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="generator" content="domain-onboarding v0.2" />
+  <meta name="generator" content="domain-onboarding v1.1" />
   <meta name="description" content="{{domain_name}} · 领域速通 · {{cutoff_date}}" />
   <meta name="robots" content="noindex" />
   <title>{{domain_name}} · 领域速通</title>
 
   <style>
     /* ============================================================
-       CSS 变量 · 主题切换
+       v1.1 视觉系统 · CSS 变量
+       亮色：米白纸张 + 朱砂朱印
+       暗色：暖灰墨底 + 朱砂偏亮 + 暗金点缀
        ============================================================ */
     :root {
-      --bg:           #faf7f2;        /* 米白 */
-      --bg-soft:      #f1ece2;        /* 米白·暗 */
-      --bg-fold:      #f6f2ea;        /* 折叠区底色（更柔） */
-      --ink:          #1a1a1a;        /* 墨黑 */
-      --ink-soft:     #6b6968;        /* 章节灰 */
-      --ink-faint:    #a8a39c;        /* 辅助灰 */
-      --ink-quiet:    #8a8784;        /* 反例 / 弱化文字 */
-      --accent:       #c0392b;        /* 朱砂 */
-      --accent-soft:  #d96250;        /* 朱砂·浅 */
-      --accent-faint: #e8b8b0;        /* 朱砂·极浅（脚注 hover 用） */
-      --rule:         #d6cfc1;        /* 分隔线 */
-      --code-bg:      #ede7d8;        /* 等宽底色 */
-      --hl:           #f5e6c8;        /* 标黄 */
-      --hl-soft:      #faf0d8;        /* 浅标黄（观点底色） */
+      /* 基础底色 */
+      --paper:        #faf7f2;
+      --bg:           #faf7f2;        /* 兼容旧名 */
+      --bg-soft:      #f1ece2;
+      --bg-fold:      #f6f2ea;
+
+      /* 墨色梯度 */
+      --ink:          #1a1a1a;
+      --ink-soft:     #6b6968;
+      --ink-faint:    #a8a39c;
+      --ink-quiet:    #8a8784;
+      --ink-soft-very:#d8d2c8;
+
+      /* 朱砂 */
+      --accent:       #c0392b;
+      --accent-soft:  rgba(192, 57, 43, 0.5);
+      --accent-faint: #e8b8b0;
+      --accent-bg:    rgba(192, 57, 43, 0.08);
+
+      /* 暗金 · 章节编号点缀 */
+      --gold:         #b08d40;
+
+      /* 块底色（机制 / 观点 / 卷尾 / 引文） */
+      --mechanism-bg: #faf3e8;
+      --viewpoint-bg: #faf2f0;
+      --coda-bg:      #faf5f0;
+
+      /* 等级色 */
+      --rule:         #d6cfc1;
+      --code-bg:      #ede7d8;
+      --hl:           #f5e6c8;
+      --hl-soft:      #faf0d8;
       --grade-a:      #5a7a4f;
       --grade-b:      #c0392b;
       --grade-c:      #b88a3a;
       --grade-d:      #6b6968;
 
+      /* 字体栈 */
       --serif: 'Songti SC', 'Source Han Serif SC', 'Noto Serif CJK SC', 'STSong', 'SimSun', serif;
       --kaiti: 'Kaiti SC', 'STKaiti', 'KaiTi', 'Songti SC', serif;
       --mono:  'Sarasa Mono SC', 'JetBrains Mono', 'Cascadia Mono', 'Menlo', monospace;
@@ -41,24 +62,36 @@
     }
 
     [data-theme="dark"] {
-      --bg:           #1a1a1a;
-      --bg-soft:      #232323;
-      --bg-fold:      #1f1f1d;
-      --ink:          #e8e6e1;
-      --ink-soft:     #a8a39c;
+      --paper:        #1a1816;
+      --bg:           #1a1816;
+      --bg-soft:      #232220;
+      --bg-fold:      #1f1d1b;
+
+      --ink:          #e8e2d8;
+      --ink-soft:     #a8a298;
       --ink-faint:    #6b6968;
       --ink-quiet:    #807d78;
-      --accent:       #e74c3c;
-      --accent-soft:  #f08272;
+      --ink-soft-very:#3a3937;
+
+      --accent:       #ff6b5b;
+      --accent-soft:  rgba(255, 107, 91, 0.5);
       --accent-faint: #5a302a;
+      --accent-bg:    rgba(255, 107, 91, 0.12);
+
+      --gold:         #c9a574;
+
+      --mechanism-bg: rgba(255, 107, 91, 0.06);
+      --viewpoint-bg: rgba(255, 107, 91, 0.08);
+      --coda-bg:      rgba(255, 107, 91, 0.04);
+
       --rule:         #3a3937;
-      --code-bg:      #2a2a28;
+      --code-bg:      #2a2826;
       --hl:           #4a3f25;
       --hl-soft:      #2e2818;
       --grade-a:      #88a87c;
-      --grade-b:      #e74c3c;
+      --grade-b:      #ff6b5b;
       --grade-c:      #d4a960;
-      --grade-d:      #a8a39c;
+      --grade-d:      #a8a298;
     }
 
     /* ============================================================
@@ -71,27 +104,29 @@
     body {
       margin: 0;
       padding: 0;
-      background: var(--bg);
+      background: var(--paper);
       color: var(--ink);
       font-family: var(--serif);
       font-size: 17px;
       line-height: 1.8;
       text-rendering: optimizeLegibility;
       -webkit-font-smoothing: antialiased;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: 'tnum';
       transition: background 0.3s ease, color 0.3s ease;
     }
 
     main {
       max-width: var(--max-w);
       margin: 0 auto;
-      padding: 2.5rem var(--gutter) 4rem;
+      padding: 0 var(--gutter) 4rem;
     }
 
     p { margin: 0 0 1.4em; }
 
     h1, h2, h3, h4 {
       font-family: var(--serif);
-      font-weight: 600;
+      font-weight: 700;
       color: var(--ink);
       line-height: 1.4;
     }
@@ -102,16 +137,18 @@
       letter-spacing: 0.02em;
     }
 
+    /* 章节 H2 已在 .chapter-cover 内重写，下面规则给兜底章节用 */
     h2 {
-      font-size: 1.5rem;
-      margin: 3.2rem 0 1.2em;
-      padding-bottom: 0.4em;
-      border-bottom: 1px solid var(--rule);
+      font-size: 1.7rem;
+      margin: 3rem 0 1.2em;
+      padding-bottom: 0.3em;
+      border-bottom: 1px dashed var(--accent-soft);
       color: var(--accent);
+      letter-spacing: 0.01em;
     }
 
     h3 {
-      font-size: 1.15rem;
+      font-size: 1.2rem;
       margin: 2rem 0 0.8em;
       color: var(--ink);
     }
@@ -171,6 +208,12 @@
     }
     tr:hover td { background: var(--bg-soft); }
 
+    /* source-grading-table 给 tabular-nums 重确认 */
+    .source-grading-table {
+      font-feature-settings: 'tnum';
+      font-variant-numeric: tabular-nums;
+    }
+
     ul, ol { padding-left: 1.6em; margin: 0 0 1.4em; }
     li { margin-bottom: 0.4em; }
 
@@ -183,11 +226,31 @@
 
     ::selection {
       background: var(--accent);
-      color: var(--bg);
+      color: var(--paper);
+    }
+
+    /* 楷体段落（视觉权重稍重） */
+    .kaiti, .quote, blockquote.viewpoint, .chapter-summary, .cover-thesis, .cover-subtitle {
+      font-family: var(--kaiti);
     }
 
     /* ============================================================
-       水墨横线（章节分隔 SVG · 全文仅 1-2 处）
+       #6 顶部阅读进度条
+       ============================================================ */
+    .reading-progress {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 0%;
+      height: 2px;
+      background: var(--accent);
+      z-index: 100;
+      transition: width 0.05s linear;
+      pointer-events: none;
+    }
+
+    /* ============================================================
+       水墨横线（旧版兼容 · 部分场景仍用）
        ============================================================ */
     .ink-rule {
       display: block;
@@ -199,43 +262,122 @@
     .ink-rule path { stroke: var(--ink-soft); fill: none; }
 
     /* ============================================================
-       顶部 Hero · 极简
+       #10 首屏卷首封面
        ============================================================ */
-    .hero {
-      padding: 1.2em 0 1.8em;
-      border-bottom: 1px solid var(--rule);
-      margin-bottom: 1.5em;
+    .cover {
+      min-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 3.5em 1em 2.5em;
+      margin: 0 calc(-1 * var(--gutter));
     }
-
-    .hero .subtitle {
-      font-size: 1.05rem;
-      color: var(--ink-soft);
-      margin: 0 0 1.2em;
-      line-height: 1.6;
-      letter-spacing: 0.01em;
+    .cover-ornament-top,
+    .cover-ornament-bottom {
+      width: 120px;
+      height: 22px;
+      opacity: 0.5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
-
-    .hero blockquote.thesis {
-      margin: 1em 0 1.4em;
-      padding: 0.7em 1.1em;
-      border-left: 3px solid var(--accent);
-      background: var(--bg-soft);
+    .cover-ornament-top svg,
+    .cover-ornament-bottom svg {
+      width: 100%;
+      height: 100%;
+    }
+    .cover-ornament-top svg path,
+    .cover-ornament-bottom svg path {
+      stroke: var(--accent);
+      fill: none;
+      stroke-width: 0.8;
+      opacity: 0.7;
+    }
+    .cover-title {
+      font-size: 3.5rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
       color: var(--ink);
+      margin: 0.6em 0 0.2em;
+      font-family: var(--serif);
+      line-height: 1.2;
+    }
+    .cover-subtitle {
+      font-size: 1.15rem;
+      color: var(--accent);
       font-family: var(--kaiti);
-      font-size: 1.12rem;
+      margin: 0 0 1.6em;
+      letter-spacing: 0.02em;
+    }
+    .cover-thesis {
+      font-family: var(--kaiti);
+      font-size: 1.1rem;
+      max-width: 520px;
+      margin: 0.4em auto 1.8em;
+      border: none;
+      border-top: 1px solid var(--accent-soft);
+      border-bottom: 1px solid var(--accent-soft);
+      padding: 0.9em 0;
+      color: var(--ink);
+      font-style: italic;
       line-height: 1.7;
-      font-style: normal;
+      background: transparent;
+    }
+    .cover-meta {
+      font-size: 0.88rem;
+      color: var(--ink-soft);
+      letter-spacing: 0.02em;
+      font-feature-settings: 'tnum';
+      font-variant-numeric: tabular-nums;
+      margin-top: 0.6em;
+    }
+    .cover-meta .dot {
+      margin: 0 0.6em;
+      opacity: 0.5;
+      color: var(--accent);
     }
 
-    .hero .meta-bar {
-      font-family: var(--mono);
-      font-size: 0.8rem;
-      color: var(--ink-faint);
-      letter-spacing: 0.04em;
+    /* ============================================================
+       #5 hero 后 10 章预览导航
+       ============================================================ */
+    .chapter-nav {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.6em;
+      margin: 2em 0 3em;
     }
-    .hero .meta-bar span + span::before {
-      content: ' · ';
-      color: var(--ink-faint);
+    .chapter-nav .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 0.7em 0.9em;
+      border: 1px solid var(--ink-soft-very);
+      border-radius: 4px;
+      text-decoration: none;
+      color: var(--ink);
+      transition: border-color 0.15s, background 0.15s, color 0.15s;
+      background: transparent;
+    }
+    .chapter-nav .nav-item:hover {
+      border-color: var(--accent);
+      background: var(--accent-bg);
+      color: var(--accent);
+    }
+    .chapter-nav .nav-item .num {
+      font-family: var(--kaiti);
+      font-size: 1.2em;
+      font-weight: 700;
+      color: var(--accent);
+      opacity: 0.85;
+      line-height: 1.1;
+    }
+    .chapter-nav .nav-item .title {
+      font-size: 0.88em;
+      margin-top: 0.25em;
+      line-height: 1.3;
+      color: inherit;
     }
 
     /* ============================================================
@@ -245,10 +387,10 @@
       position: sticky;
       top: 0;
       z-index: 10;
-      background: var(--bg);
+      background: var(--paper);
       border-bottom: 1px solid var(--rule);
       padding: 0.55em 0;
-      margin: 0 calc(-1 * var(--gutter)) 1.2em;
+      margin: 0 calc(-1 * var(--gutter)) 0;
       padding-left: var(--gutter);
       padding-right: var(--gutter);
       display: flex;
@@ -268,9 +410,113 @@
     .theme-btn:hover { color: var(--accent); border-color: var(--accent); }
 
     /* ============================================================
-       章节基础样式
+       #1 章节卷首大字编号 + #2 首字下沉
        ============================================================ */
-    .chapter { margin: 0 0 0.5em; }
+    .chapter {
+      margin: 0 0 1em;
+      position: relative;
+    }
+
+    .chapter-cover {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: center;
+      gap: 0.4em 1.1em;
+      margin: 3.6em 0 1.4em;
+      padding-bottom: 0.4em;
+      border-bottom: 1px dashed var(--accent-soft);
+    }
+    .chapter-num-zh {
+      font-family: var(--kaiti);
+      font-size: 4.5rem;
+      font-weight: 700;
+      color: var(--accent);
+      opacity: 0.5;
+      letter-spacing: -0.05em;
+      line-height: 1;
+      grid-row: 1 / span 2;
+      align-self: center;
+      user-select: none;
+    }
+    .chapter-cover h2 {
+      font-size: 1.7rem;
+      margin: 0;
+      padding: 0;
+      border: none;
+      color: var(--accent);
+      line-height: 1.4;
+      align-self: center;
+    }
+    .chapter-cover .epigraph {
+      grid-column: 2;
+      font-family: var(--kaiti);
+      font-size: 0.95rem;
+      color: var(--ink-soft);
+      font-style: italic;
+      margin: 0.2em 0 0;
+    }
+
+    [data-theme="dark"] .chapter-num-zh {
+      color: var(--gold);
+      opacity: 0.7;
+    }
+
+    /* 首字下沉 · 仅在 .chapter-body 第一段第一个字 */
+    .chapter-body > p:first-of-type::first-letter,
+    .chapter-body > p:first-child::first-letter {
+      font-family: var(--serif);
+      font-size: 3.4em;
+      float: left;
+      line-height: 0.9;
+      margin: 0.05em 0.1em 0 0;
+      padding: 0.05em 0.05em 0 0;
+      color: var(--accent);
+      font-weight: 700;
+    }
+    [data-theme="dark"] .chapter-body > p:first-of-type::first-letter,
+    [data-theme="dark"] .chapter-body > p:first-child::first-letter {
+      color: var(--accent);
+    }
+
+    /* ============================================================
+       #9 章节末水墨分隔（4 种轮换 · CSS data-uri）
+       ============================================================ */
+    .chapter::after {
+      content: '';
+      display: block;
+      height: 28px;
+      margin: 2.6em auto 1em;
+      max-width: 240px;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-size: contain;
+      opacity: 0.55;
+    }
+    /* 远山 (mountain) */
+    .chapter:nth-of-type(4n+1)::after {
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 360 30'><path d='M10 24 L60 10 L100 22 L140 6 L180 24 L230 12 L280 22 L330 8 L350 24' stroke='%23c0392b' stroke-width='1.2' fill='none' opacity='0.5'/><path d='M10 26 L350 26' stroke='%23c0392b' stroke-width='0.4' opacity='0.3'/></svg>");
+    }
+    /* 折扇 (fan) */
+    .chapter:nth-of-type(4n+2)::after {
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 360 30'><path d='M180 26 L140 8 M180 26 L160 6 M180 26 L180 4 M180 26 L200 6 M180 26 L220 8' stroke='%23c0392b' stroke-width='0.9' fill='none' opacity='0.55'/><path d='M140 8 Q 180 -2 220 8' stroke='%23c0392b' stroke-width='0.9' fill='none' opacity='0.55'/></svg>");
+    }
+    /* 竹叶 (bamboo) */
+    .chapter:nth-of-type(4n+3)::after {
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 360 30'><path d='M180 4 L180 26' stroke='%23c0392b' stroke-width='1.4' opacity='0.55'/><path d='M180 10 Q 200 6 218 14' stroke='%23c0392b' stroke-width='1.1' fill='none' opacity='0.55'/><path d='M180 16 Q 158 12 142 22' stroke='%23c0392b' stroke-width='1.1' fill='none' opacity='0.55'/><path d='M180 20 Q 196 18 210 26' stroke='%23c0392b' stroke-width='1.1' fill='none' opacity='0.5'/></svg>");
+    }
+    /* 蜻蜓水波 (dragonfly) */
+    .chapter:nth-of-type(4n+4)::after {
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 360 30'><path d='M40 22 Q 80 18 120 22 T 200 22 T 280 22 T 340 22' stroke='%23c0392b' stroke-width='0.7' fill='none' opacity='0.45'/><path d='M180 14 L180 8 M174 12 L186 12 M170 10 L190 10' stroke='%23c0392b' stroke-width='1' opacity='0.6'/><circle cx='180' cy='6' r='1.6' fill='%23c0392b' opacity='0.7'/></svg>");
+    }
+    [data-theme="dark"] .chapter:nth-of-type(4n+1)::after { filter: hue-rotate(0deg) brightness(1.5) saturate(0.9); }
+    [data-theme="dark"] .chapter:nth-of-type(4n+2)::after { filter: brightness(1.5) saturate(0.9); }
+    [data-theme="dark"] .chapter:nth-of-type(4n+3)::after { filter: brightness(1.5) saturate(0.9); }
+    [data-theme="dark"] .chapter:nth-of-type(4n+4)::after { filter: brightness(1.5) saturate(0.9); }
+
+    /* 最后一章不画分隔（折叠区前已有 hr） */
+    .chapters > .chapter:last-of-type::after {
+      display: none;
+    }
 
     /* ============================================================
        事实脚注 · 朴素 [N] 上标
@@ -294,7 +540,6 @@
       background: var(--accent-faint);
     }
 
-    /* 事实 hover tooltip（CSS only · 简易实现） */
     .fact-ref[data-tip]:hover::after {
       content: attr(data-tip);
       position: absolute;
@@ -305,7 +550,7 @@
       width: max-content;
       padding: 0.5em 0.7em;
       background: var(--ink);
-      color: var(--bg);
+      color: var(--paper);
       font-family: var(--serif);
       font-size: 0.82rem;
       line-height: 1.5;
@@ -317,27 +562,53 @@
     }
 
     /* ============================================================
-       机制段落 · 朱砂细边线（不写"机制层"字样）
+       #3 三种引文块视觉差异化
        ============================================================ */
-    p.mechanism {
+
+    /* 机制段 · 朴素朱砂细线 + 浅米色底 */
+    p.mechanism, .mechanism {
       border-left: 2px solid var(--accent);
-      padding-left: 1em;
-      margin-left: 0;
+      background: var(--mechanism-bg);
+      padding: 0.8em 1.2em 0.8em 1.4em;
+      margin: 1.5em 0;
+      border-radius: 0 2px 2px 0;
     }
 
-    /* ============================================================
-       观点段落 · 朱砂粗边线 + 楷体 + 底色微 highlight
-       ============================================================ */
+    /* 观点引文 · 朱砂双线 + 楷体 + 引号装饰 */
     blockquote.viewpoint {
-      margin: 1.6em 0;
-      padding: 0.7em 1.1em;
-      border-left: 4px solid var(--accent);
-      background: var(--hl-soft);
-      color: var(--ink);
+      border-left: 4px double var(--accent);
+      background: var(--viewpoint-bg);
       font-family: var(--kaiti);
       font-style: normal;
       font-size: 1.05rem;
       line-height: 1.75;
+      padding: 1em 1.4em 1em 1.8em;
+      margin: 1.8em 0;
+      color: var(--ink);
+      position: relative;
+      border-radius: 0 2px 2px 0;
+    }
+    blockquote.viewpoint::before {
+      content: '『';
+      position: absolute;
+      top: 0.3em;
+      left: 0.45em;
+      color: var(--accent);
+      font-size: 1.5em;
+      opacity: 0.4;
+      font-family: var(--serif);
+      pointer-events: none;
+    }
+    blockquote.viewpoint::after {
+      content: '』';
+      position: absolute;
+      bottom: 0.2em;
+      right: 0.5em;
+      color: var(--accent);
+      font-size: 1.5em;
+      opacity: 0.4;
+      font-family: var(--serif);
+      pointer-events: none;
     }
     blockquote.viewpoint p {
       margin: 0 0 0.6em;
@@ -346,8 +617,9 @@
       margin-bottom: 0;
     }
 
-    /* 反例：viewpoint 内部的 .counter 子节点（span / p / em） */
-    blockquote.viewpoint .counter {
+    /* 反例 · viewpoint 内 .counter（保留闸门钩子） */
+    blockquote.viewpoint .counter,
+    .viewpoint .counter {
       display: block;
       margin-top: 0.6em;
       padding-top: 0.5em;
@@ -357,12 +629,146 @@
       font-size: 0.92em;
       line-height: 1.7;
     }
-    blockquote.viewpoint .counter::before {
+    blockquote.viewpoint .counter::before,
+    .viewpoint .counter::before {
       content: '反例 · ';
       font-family: var(--mono);
+      font-size: 0.85em;
+      font-weight: 700;
+      color: var(--accent);
+      opacity: 0.8;
+      letter-spacing: 0.08em;
+    }
+
+    /* 直接引用 · 上下双线 + 楷体 + cite 右对齐 */
+    blockquote.quote, .quote {
+      border-top: 1px solid var(--accent);
+      border-bottom: 1px solid var(--accent);
+      border-left: none;
+      padding: 1em 0.6em 1em 1.6em;
+      margin: 1.6em 0.4em;
+      font-family: var(--kaiti);
+      font-style: italic;
+      position: relative;
+      background: transparent;
+      color: var(--ink);
+    }
+    blockquote.quote::before, .quote::before {
+      content: '〝';
+      color: var(--accent);
+      font-size: 1.8em;
+      position: absolute;
+      top: -0.05em;
+      left: 0;
+      opacity: 0.45;
+      font-family: var(--serif);
+      pointer-events: none;
+      line-height: 1;
+    }
+    blockquote.quote cite, .quote cite {
+      display: block;
+      text-align: right;
+      margin-top: 0.6em;
+      color: var(--ink-soft);
+      font-style: normal;
+      font-size: 0.9em;
+      font-family: var(--serif);
+    }
+    blockquote.quote cite::before, .quote cite::before { content: '—— '; }
+
+    /* ============================================================
+       #4 chapter-summary 卷尾独立设计
+       ============================================================ */
+    .chapter-coda {
+      margin: 2em 1em 1em;
+      padding: 1.2em 1.5em;
+      border-top: 1px solid var(--accent-soft);
+      border-bottom: 1px solid var(--accent-soft);
+      background: var(--coda-bg);
+      text-align: center;
+    }
+    .chapter-coda .chapter-summary,
+    .chapter-coda p.chapter-summary {
+      font-family: var(--kaiti);
+      font-style: italic;
+      color: var(--ink-soft);
+      font-size: 0.96em;
+      margin: 0;
+      line-height: 1.7;
+    }
+    .chapter-coda em { color: var(--ink-soft); }
+
+    /* 兜底：若 V2 还没把 chapter-summary 包成 chapter-coda */
+    .chapter-body > p.chapter-summary {
+      font-family: var(--kaiti);
+      font-style: italic;
+      color: var(--ink-soft);
+      text-align: center;
+      border-top: 1px solid var(--accent-soft);
+      border-bottom: 1px solid var(--accent-soft);
+      padding: 1em 1.2em;
+      margin: 2em 1em 1em;
+      background: var(--coda-bg);
+      font-size: 0.96em;
+    }
+
+    /* ============================================================
+       #7 侧边浮动迷你目录
+       ============================================================ */
+    .side-toc {
+      position: fixed;
+      right: 1em;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 110px;
+      z-index: 50;
       font-size: 0.78em;
-      color: var(--accent-soft);
-      letter-spacing: 0.1em;
+      pointer-events: auto;
+    }
+    .side-toc ol {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .side-toc li {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.65em;
+      cursor: pointer;
+    }
+    .side-toc li a {
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+      border: none;
+      color: inherit;
+      width: 100%;
+    }
+    .side-toc .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--ink-soft-very);
+      margin-right: 0.5em;
+      flex-shrink: 0;
+      transition: background 0.2s, transform 0.2s;
+    }
+    .side-toc li.active .dot {
+      background: var(--accent);
+      transform: scale(1.4);
+    }
+    .side-toc .label {
+      color: var(--ink-soft);
+      opacity: 0;
+      transition: opacity 0.2s;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 88px;
+    }
+    .side-toc:hover .label,
+    .side-toc li.active .label {
+      opacity: 1;
     }
 
     /* ============================================================
@@ -383,11 +789,8 @@
     .grade-c { background: var(--grade-c); color: #fff; }
     .grade-d { background: var(--grade-d); color: #fff; }
 
-    .source-grading-table { margin: 1.2em 0; }
-
     /* ============================================================
        底部折叠区 · details / summary
-       不抢主流叙事戏：低对比度，朴素 summary
        ============================================================ */
     .folds {
       margin: 3em 0 1em;
@@ -446,7 +849,6 @@
       color: var(--accent);
     }
 
-    /* 折叠区展开后的内容 · 低对比度 */
     details.sources-fold[open],
     details.experts-fold[open],
     details.self-check-fold[open],
@@ -470,17 +872,19 @@
       margin: 0.6em 0;
     }
 
-    /* 自检题内的 details（每道题嵌套折叠答案） */
-    details.self-check-fold details.qa {
+    details.self-check-fold details.qa,
+    details.self-check-fold details.self-check {
       margin: 0.5em 0;
       padding: 0.4em 0;
       border-bottom: 1px dotted var(--rule);
     }
-    details.self-check-fold details.qa summary {
+    details.self-check-fold details.qa summary,
+    details.self-check-fold details.self-check summary {
       font-size: 0.95rem;
       padding: 0.3em 0;
     }
-    details.self-check-fold details.qa .answer {
+    details.self-check-fold details.qa .answer,
+    details.self-check-fold details.self-check .answer {
       margin-top: 0.5em;
       padding: 0.5em 0.8em;
       background: var(--bg-soft);
@@ -488,7 +892,6 @@
       color: var(--ink-soft);
     }
 
-    /* 已知未知数据折叠区的 ul（闸门要数 li） */
     details.unknowns-data-fold ul {
       list-style: none;
       padding: 0;
@@ -512,7 +915,6 @@
       border-bottom: none;
     }
 
-    /* 推荐人 / 账号 / 社区列表 */
     details.experts-fold ul {
       list-style: none;
       padding: 0;
@@ -532,7 +934,7 @@
       font-size: 0.92rem;
     }
 
-    /* 信息来源完整事实清单 */
+    details.sources-fold ol.facts-complete-list,
     details.sources-fold ol.facts-complete {
       list-style: decimal;
       padding-left: 2em;
@@ -541,17 +943,17 @@
       font-size: 0.92rem;
       line-height: 1.65;
     }
-    details.sources-fold ol.facts-complete li[id^="fact-data-"] {
+    details.sources-fold ol li[id^="fact-data-"] {
       padding: 0.25em 0;
       border-bottom: 1px dotted var(--rule);
     }
-    details.sources-fold ol.facts-complete li[id^="fact-data-"]:target {
+    details.sources-fold ol li[id^="fact-data-"]:target {
       background: var(--hl);
       color: var(--ink);
     }
 
     /* ============================================================
-       尾跋小字（替代 v0.1 的 disclaimer 大块）
+       尾跋小字
        ============================================================ */
     footer.postscript {
       margin: 2.5em 0 1em;
@@ -567,7 +969,6 @@
       font-weight: 600;
     }
 
-    /* 末尾页脚（最末一行） */
     footer.colophon {
       margin-top: 2em;
       padding-top: 1em;
@@ -579,42 +980,138 @@
     }
 
     /* ============================================================
-       响应式
+       #13 响应式 · 三档断点
        ============================================================ */
-    @media (max-width: 640px) {
+    @media (max-width: 1024px) {
+      .side-toc { display: none; }
+      main { max-width: 90vw; }
+      .chapter-nav { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    @media (max-width: 768px) {
       :root { --gutter: 1.2rem; }
       body { font-size: 16px; }
-      h1 { font-size: 1.85rem; }
-      h2 { font-size: 1.3rem; }
-      .hero blockquote.thesis { font-size: 1rem; }
-      .hero .subtitle { font-size: 0.98rem; }
-      blockquote.viewpoint { font-size: 1rem; padding: 0.6em 0.9em; }
-      p.mechanism { padding-left: 0.8em; }
+      main { padding: 0 1.2rem; max-width: 100%; }
+      .cover-title { font-size: 2.5rem; letter-spacing: 0.05em; }
+      .cover-subtitle { font-size: 1rem; }
+      .cover-thesis { font-size: 1rem; }
+      .cover-meta { font-size: 0.82rem; }
+      .chapter-num-zh { font-size: 3.2rem; }
+      .chapter-cover {
+        grid-template-columns: 1fr;
+        gap: 0.2em 0;
+      }
+      .chapter-num-zh {
+        grid-row: auto;
+        align-self: start;
+      }
+      .chapter-cover h2 {
+        font-size: 1.45rem;
+      }
+      .chapter-cover .epigraph { grid-column: 1; }
+      .chapter-nav { grid-template-columns: repeat(2, 1fr); }
+      .chapter-body p:first-of-type::first-letter,
+      .chapter-body p:first-child::first-letter { font-size: 2.8em; }
+      blockquote.viewpoint { font-size: 1rem; padding: 0.85em 1.1em 0.85em 1.5em; }
+      p.mechanism, .mechanism { padding-left: 1.1em; }
       .theme-bar { padding: 0.5em var(--gutter); }
       .fact-ref[data-tip]:hover::after {
         max-width: calc(100vw - 2 * var(--gutter));
       }
     }
 
+    @media (max-width: 480px) {
+      main { padding: 0 0.8rem; }
+      .cover-title { font-size: 2rem; }
+      .cover-subtitle { font-size: 0.95rem; }
+      .chapter-num-zh { font-size: 2.6rem; }
+      .chapter-cover h2 { font-size: 1.3rem; }
+      .chapter-nav { grid-template-columns: 1fr 1fr; gap: 0.4em; }
+      .chapter-nav .nav-item { padding: 0.55em 0.7em; }
+      .chapter-nav .nav-item .title { font-size: 0.82em; }
+    }
+
     /* ============================================================
-       打印优化（A4）
+       #14 打印优化（A4）
        ============================================================ */
-    @page { size: A4; margin: 1.6cm; }
+    @page {
+      size: A4;
+      margin: 2.2cm 1.8cm 2cm 1.8cm;
+    }
     @media print {
-      .theme-bar, .theme-btn { display: none !important; }
-      details { open: true; }
-      details > summary { list-style: none; }
-      details:not([open]) > *:not(summary) { display: block !important; }
-      body { background: #fff; color: #000; font-size: 11pt; }
-      h2 { page-break-after: avoid; }
-      .chapter { page-break-inside: avoid; }
+      body {
+        background: #fff;
+        color: #000;
+        font-size: 10.5pt;
+        line-height: 1.7;
+      }
+      .reading-progress,
+      .side-toc,
+      .theme-bar,
+      .theme-btn,
+      #theme-toggle,
+      .chapter-nav,
+      .ink-rule { display: none !important; }
+
+      details { open: ''; }
+      details > *:not(summary) { display: block !important; }
+      details summary { font-weight: 700; margin-bottom: 0.6em; list-style: none; }
+      details summary::before { content: '' !important; }
+
+      .chapter { page-break-before: always; break-before: page; page-break-inside: auto; }
+      .chapter:first-of-type { page-break-before: avoid; break-before: avoid; }
+      .chapter::after { display: none; }
+
+      .cover {
+        min-height: auto;
+        padding: 1cm 0;
+        page-break-after: always;
+        break-after: page;
+      }
+      .cover-title { font-size: 2.2rem; color: #000; }
+      .cover-subtitle { color: #444; }
+      .cover-thesis { color: #000; border-color: #888; }
+
+      .chapter-num-zh { font-size: 2.8rem; color: #444; opacity: 0.85; }
+      .chapter-cover h2 { font-size: 1.4rem; color: #000; border-color: #888; }
+
+      .mechanism,
+      blockquote.viewpoint,
+      blockquote.quote,
+      .quote {
+        background: none !important;
+        border-color: #888 !important;
+        color: #000 !important;
+      }
+      blockquote.viewpoint::before,
+      blockquote.viewpoint::after,
+      blockquote.quote::before { color: #888 !important; }
+
+      .chapter-coda {
+        background: none !important;
+        border-color: #888 !important;
+      }
+
       .fact-ref[data-tip]:hover::after { display: none; }
+
+      a { color: #000 !important; text-decoration: none; border: none; }
+      a[href^="#"]::after { content: ""; }
+      a[href^="http"]::after {
+        content: " [" attr(href) "]";
+        font-size: 9pt;
+        color: #666;
+      }
+
+      h2 { page-break-after: avoid; }
       footer.postscript { page-break-inside: avoid; }
     }
   </style>
 </head>
 
 <body>
+
+  <!-- 顶部阅读进度条 -->
+  <div class="reading-progress" id="readingProgress" aria-hidden="true"></div>
 
   <!-- 主题切换栏 -->
   <nav class="theme-bar" role="navigation" aria-label="主题切换">
@@ -623,46 +1120,44 @@
 
   <main>
 
-    <!-- =======================================================
-         顶部 Hero · 极简版
-         只保留：H1 + 副标题 + thesis 一句话 + cutoff 小字
-         ======================================================= -->
-    <header class="hero">
-      <h1>{{domain_name}}</h1>
-      <div class="subtitle">{{subtitle}}</div>
-      <blockquote class="thesis">{{thesis_one_liner}}</blockquote>
-      <div class="meta-bar">
+    <!-- 卷首封面 -->
+    <header class="cover">
+      <div class="cover-ornament-top" aria-hidden="true">
+        <svg viewBox="0 0 120 22" xmlns="http://www.w3.org/2000/svg">
+          <path d="M5 11 Q 30 6 60 11 T 115 11" stroke-width="0.7"/>
+          <path d="M55 8 Q 60 4 65 8" stroke-width="1"/>
+          <path d="M55 14 Q 60 18 65 14" stroke-width="1"/>
+        </svg>
+      </div>
+      <h1 class="cover-title">{{domain_name}}</h1>
+      <div class="cover-subtitle">{{subtitle}}</div>
+      <blockquote class="cover-thesis">{{thesis_one_liner}}</blockquote>
+      <div class="cover-meta">
         <span>cutoff {{cutoff_date}}</span>
+        <span class="dot">·</span>
+        <span>{{fact_count}} 事实锚点</span>
+        <span class="dot">·</span>
+        <span>{{word_count}} 字</span>
+      </div>
+      <div class="cover-ornament-bottom" aria-hidden="true">
+        <svg viewBox="0 0 120 22" xmlns="http://www.w3.org/2000/svg">
+          <path d="M5 11 Q 30 16 60 11 T 115 11" stroke-width="0.7"/>
+          <path d="M58 6 L62 6 M56 9 L64 9 M58 12 L62 12" stroke-width="0.9"/>
+        </svg>
       </div>
     </header>
 
-    <!-- =======================================================
-         主体 · 10 章弧线
-         由 render.py 把 chapters[] 渲染成
-           <section class="chapter" id="chapter-id">
-             <h2>章节标题</h2>
-             {{ narrative_html }}
-           </section>
-         串联输出到 {{{chapters_html}}}
-         ======================================================= -->
+    <!-- 10 章预览导航（V2 输出 chapter_nav_html；缺则空 nav） -->
+    <nav class="chapter-nav" aria-label="章节导航">
+      {{{chapter_nav_html}}}
+    </nav>
+
+    <!-- 主体 · 10 章弧线（V2 渲染 chapter-cover / chapter-body / chapter-coda 包装） -->
     <section class="chapters">
       {{{chapters_html}}}
     </section>
 
-    <!-- 章节末水墨分隔（仅一处，承上启下） -->
-    <svg class="ink-rule" viewBox="0 0 360 14" aria-hidden="true">
-      <path d="M0 7 Q 30 4 60 7 T 120 7 T 180 7 T 240 7 T 300 7 T 360 7" stroke-width="0.8"/>
-      <path d="M170 4 Q 178 1 186 4" stroke-width="1.2"/>
-      <path d="M174 10 Q 180 13 186 10" stroke-width="1.2"/>
-    </svg>
-
-    <!-- =======================================================
-         底部折叠区（不抢戏）
-         - 信息来源（A/B/C/D 等级表 + 完整事实清单）
-         - 推荐人 / 账号 / 社区
-         - 自检题
-         - 已知未知数据（旁路 ul · 闸门数据源）
-         ======================================================= -->
+    <!-- 底部折叠区 -->
     <section class="folds" aria-label="底部折叠资料">
 
       <details class="sources-fold">
@@ -688,10 +1183,7 @@
 
     </section>
 
-    <!-- =======================================================
-         尾跋小字 · AI disclaimer 弱化版
-         保留 id="ai-disclaimer" 供闸门扫描
-         ======================================================= -->
+    <!-- 尾跋小字 · AI disclaimer 弱化版 -->
     <footer class="postscript" id="ai-disclaimer">
       本页由 AI 生成（<strong>{{cutoff_date}}</strong> cutoff）。AI 模型本身就是主流叙事载体——对"非共识""异端"覆盖天然不足。本页所有判断都是可被打脸的假设。请通过推荐区的人脑验证关键结论。
       {{{ai_disclaimer_extra_html}}}
@@ -705,9 +1197,11 @@
 
   </main>
 
-  <!-- =======================================================
-       JavaScript · 主题 / 脚注
-       ======================================================= -->
+  <!-- 侧边浮动迷你目录（桌面端显示） -->
+  <aside class="side-toc" aria-label="章节快速跳转">
+    {{{side_toc_html}}}
+  </aside>
+
   <script>
     (function () {
       'use strict';
@@ -720,20 +1214,21 @@
       function setTheme(theme) {
         if (theme === 'dark') {
           document.documentElement.setAttribute('data-theme', 'dark');
-          themeBtn.textContent = '日读';
+          if (themeBtn) themeBtn.textContent = '日读';
         } else {
           document.documentElement.removeAttribute('data-theme');
-          themeBtn.textContent = '夜读';
+          if (themeBtn) themeBtn.textContent = '夜读';
         }
         try { localStorage.setItem(STORAGE_THEME, theme); } catch (e) {}
       }
 
-      themeBtn.addEventListener('click', function () {
-        const current = document.documentElement.getAttribute('data-theme');
-        setTheme(current === 'dark' ? 'light' : 'dark');
-      });
+      if (themeBtn) {
+        themeBtn.addEventListener('click', function () {
+          const current = document.documentElement.getAttribute('data-theme');
+          setTheme(current === 'dark' ? 'light' : 'dark');
+        });
+      }
 
-      /* ----------- 恢复偏好 ----------- */
       try {
         const savedTheme = localStorage.getItem(STORAGE_THEME);
         if (savedTheme) {
@@ -743,6 +1238,36 @@
         }
       } catch (e) { /* localStorage disabled */ }
 
+      /* ----------- 顶部阅读进度条 ----------- */
+      const progressBar = document.getElementById('readingProgress');
+      function updateProgress() {
+        if (!progressBar) return;
+        const docH = document.documentElement.scrollHeight - window.innerHeight;
+        const pct = docH > 0 ? (window.scrollY / docH) * 100 : 0;
+        progressBar.style.width = Math.min(100, Math.max(0, pct)) + '%';
+      }
+      window.addEventListener('scroll', updateProgress, { passive: true });
+      window.addEventListener('resize', updateProgress);
+      updateProgress();
+
+      /* ----------- 侧边目录 · IntersectionObserver 当前章高亮 ----------- */
+      const sideTocItems = document.querySelectorAll('.side-toc li');
+      const chapters = document.querySelectorAll('.chapters > .chapter');
+      if (sideTocItems.length && chapters.length && 'IntersectionObserver' in window) {
+        const observer = new IntersectionObserver(function (entries) {
+          entries.forEach(function (e) {
+            if (e.isIntersecting) {
+              const id = e.target.id;
+              sideTocItems.forEach(function (item) {
+                const cid = item.getAttribute('data-chapter-id');
+                item.classList.toggle('active', cid === id);
+              });
+            }
+          });
+        }, { rootMargin: '-30% 0px -60% 0px', threshold: 0 });
+        chapters.forEach(function (c) { observer.observe(c); });
+      }
+
       /* ----------- 脚注点击：跳到底部完整列表并高亮 ----------- */
       document.addEventListener('click', function (e) {
         const target = e.target.closest && e.target.closest('.fact-ref');
@@ -750,7 +1275,6 @@
           const href = target.getAttribute('href');
           if (href && href.charAt(0) === '#') {
             e.preventDefault();
-            // 先确保 sources-fold 是展开状态
             const fold = document.querySelector('details.sources-fold');
             if (fold && !fold.open) fold.open = true;
             const el = document.querySelector(href);
@@ -768,7 +1292,6 @@
       });
 
       /* ----------- 脚注 hover：从底部 fact-data-N 取文本注入 data-tip ----------- */
-      // 只在第一次 hover 时注入，避免每次 DOM 查询
       document.querySelectorAll('.fact-ref').forEach(function (ref) {
         ref.addEventListener('mouseenter', function () {
           if (ref.hasAttribute('data-tip')) return;
@@ -776,7 +1299,6 @@
           if (!href || href.charAt(0) !== '#') return;
           const dataItem = document.querySelector(href);
           if (dataItem) {
-            // 截断到 ~200 字
             let txt = dataItem.textContent.replace(/\s+/g, ' ').trim();
             if (txt.length > 200) txt = txt.slice(0, 200) + '…';
             ref.setAttribute('data-tip', txt);
