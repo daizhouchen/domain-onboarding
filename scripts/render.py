@@ -251,6 +251,199 @@ def _split_summary(narrative_html: str) -> tuple:
     return body, coda
 
 
+# ---------- v1.2 段落内层次 typography post-processing ----------
+#
+# sample 里把"分组标题 / 子项标题 / 编号条目 / 玩家段 / 镜子段 / 叙事段"全部
+# 用同一个 <p><strong>X.</strong>...</p> 内联粗体表示，视觉权重相同读起来累。
+# 这里识别 6 类平铺 pattern（A 字母分组 / B 字母+数字子项 / C 中文条目 /
+# D 镜子条目 / E 叙事条目 / F 编号 unknowns），把它们转成语义化 HTML 结构
+# （h4/h5 + section/div + 子 span 编号），让模板 CSS 能给出对应视觉层次。
+#
+# 关键约束：
+# - sample JSON 不动，只在 render 时做后处理
+# - 先用 placeholder 替换 mechanism / viewpoint / quote / chapter-summary，
+#   等 typography 应用完再恢复——避免误吞结构化引文里的 strong
+# - 每个 pattern 单独失败回退（保留原段落 > 错误转换）
+
+_TYPO_PROTECT_RE = re.compile(
+    r'(<p\s+class="mechanism"[^>]*>.*?</p>'
+    r'|<blockquote[^>]*>.*?</blockquote>'
+    r'|<p\s+class="chapter-summary"[^>]*>.*?</p>'
+    r'|<p\s+class="transition"[^>]*>.*?</p>)',
+    re.DOTALL,
+)
+
+# Pattern A 变体 1（vec 风）：<p><strong>A. 标题——lead.</strong>正文</p>
+# title/lead 都在 strong 内部，正文在 strong 之后
+_TYPO_GROUP_HEADING_V1_RE = re.compile(
+    r'<p><strong>([A-DＡ-Ｄ])\.\s*([^。<]{2,30}?)(?:。|——)([^<]{0,200}?)</strong>(.*?)</p>',
+    re.DOTALL,
+)
+
+# Pattern A 变体 2（dollar 风）：<p class="group-lead">前缀<strong>A. 标题</strong>——lead</p>
+_TYPO_GROUP_HEADING_V2_RE = re.compile(
+    r'<p class="group-lead"[^>]*>(.{0,40}?)<strong>([A-DＡ-Ｄ])\.\s*([^<]{2,40}?)</strong>(.{0,500}?)</p>',
+    re.DOTALL,
+)
+
+# Pattern B：<p><strong>A1. 子项标题。</strong>正文</p>
+_TYPO_ITEM_BLOCK_RE = re.compile(
+    r"<p><strong>([A-DＡ-Ｄ]\d+)\.\s*(.{2,80}?)。\s*</strong>(.*?)</p>",
+    re.DOTALL,
+)
+
+# Pattern C：<p><strong>第一条：标题。</strong>正文</p>
+# 支持"第五条 · 标题。"这种用中点替代冒号的变体
+_TYPO_NUMBERED_ITEM_RE = re.compile(
+    r'<p><strong>(第[一二三四五六七八九十]+条)\s*(?:[：:]|·|\s·\s)\s*([^。<]{2,80})[。:]\s*</strong>(.*?)</p>',
+    re.DOTALL,
+)
+
+# Pattern D：<p><strong>镜子一：标题。</strong>正文</p>
+# 支持"镜子三（跨行业）：标题"这种带括号注释的变体
+_TYPO_MIRROR_BLOCK_RE = re.compile(
+    r'<p><strong>(镜子[一二三四五六七八九十])(?:（[^）<]{1,20}）)?[：:]\s*([^。<]{2,80})[。]?\s*</strong>(.*?)</p>',
+    re.DOTALL,
+)
+
+# Pattern E：<p><strong>叙事 A：标题。</strong>正文</p>
+_TYPO_NARRATIVE_BLOCK_RE = re.compile(
+    r'<p><strong>(叙事\s*[ABCＡＢＣ])[：:]\s*([^。<]{2,80})[。]?\s*</strong>(.*?)</p>',
+    re.DOTALL,
+)
+
+# Pattern F：<p><strong>1. 标题——副标题。</strong>正文</p>（编号 unknowns）
+_TYPO_UNKNOWN_ITEM_RE = re.compile(
+    r'<p><strong>(\d{1,2})\.\s*(.{2,80}?)。\s*</strong>(.*?)</p>',
+    re.DOTALL,
+)
+
+
+def _typo_replace_a_v1(m: "re.Match[str]") -> str:
+    letter, title, lead_in, rest = m.groups()
+    lead = (lead_in + rest).strip().lstrip('—-。 ')
+    return (
+        f'<h4 class="group-heading"><span class="group-letter">{letter}</span>'
+        f'{title.strip()}</h4>\n'
+        f'<p class="group-intro">{lead}</p>'
+    )
+
+
+def _typo_replace_a_v2(m: "re.Match[str]") -> str:
+    _prefix, letter, title, rest = m.groups()
+    # prefix 是"先说/然后是/第三类是/最后是"等转折语，丢掉
+    lead = rest.strip().lstrip('——-。 ')
+    return (
+        f'<h4 class="group-heading"><span class="group-letter">{letter}</span>'
+        f'{title.strip()}</h4>\n'
+        f'<p class="group-intro">{lead}</p>'
+    )
+
+
+def _typo_replace_b(m: "re.Match[str]") -> str:
+    num, title, rest = m.groups()
+    return (
+        f'<div class="item-block">\n'
+        f'  <h5 class="item-heading"><span class="item-num">{num}</span>'
+        f'{title.strip()}</h5>\n'
+        f'  <p>{rest.strip()}</p>\n'
+        f'</div>'
+    )
+
+
+def _typo_replace_c(m: "re.Match[str]") -> str:
+    label, title, rest = m.groups()
+    return (
+        f'<section class="numbered-item">\n'
+        f'  <h4 class="numbered-heading"><span class="num-label">{label}</span>'
+        f'{title.strip()}</h4>\n'
+        f'  <p>{rest.strip()}</p>\n'
+        f'</section>'
+    )
+
+
+def _typo_replace_d(m: "re.Match[str]") -> str:
+    label, title, rest = m.groups()
+    return (
+        f'<div class="mirror-block">\n'
+        f'  <h5 class="mirror-heading"><span class="mirror-num">{label}</span>'
+        f'{title.strip()}</h5>\n'
+        f'  <p>{rest.strip()}</p>\n'
+        f'</div>'
+    )
+
+
+def _typo_replace_e(m: "re.Match[str]") -> str:
+    tag, title, rest = m.groups()
+    tag_clean = tag.strip()
+    return (
+        f'<div class="narrative-block">\n'
+        f'  <h5 class="narrative-heading"><span class="narrative-tag">{tag_clean}</span>'
+        f'{title.strip()}</h5>\n'
+        f'  <p>{rest.strip()}</p>\n'
+        f'</div>'
+    )
+
+
+def _typo_replace_f(m: "re.Match[str]") -> str:
+    num, title, rest = m.groups()
+    return (
+        f'<div class="unknown-item" data-num="{num}">\n'
+        f'  <h5 class="unknown-heading"><span class="unknown-num">{num}</span>'
+        f'{title.strip()}</h5>\n'
+        f'  <p>{rest.strip()}</p>\n'
+        f'</div>'
+    )
+
+
+def _apply_typography_layers(html_text: str) -> str:
+    """对 narrative_html body（已剥离 chapter-summary）应用 6 类 pattern 转换。
+
+    保护策略：先把 mechanism / viewpoint / quote / transition 这些已经语义化的
+    结构块替换成 placeholder，应用 typography pattern 后再恢复——避免正则误吞
+    引文块里的 <strong>。
+
+    Pattern 顺序敏感：
+    - A 必须在 B 之前（A. 比 A1. 短，但 A1.、A2. 都不会被 A 误匹配，因为 A. 后
+      没有数字）；为防万一仍把 B 放在 A 后面更保守。
+    - 实际上 A 的正则 `[A-DＡ-Ｄ]\.` 后面只允许非数字（被 `\.` 限定），所以
+      不会匹配 "A1."。
+    - F (\d+\.) 放最后，它最宽，最后兜底。
+    """
+    if not isinstance(html_text, str) or not html_text:
+        return html_text or ""
+
+    # Step 1: 保护已语义化的引文块
+    placeholders: List[str] = []
+
+    def _stash(m: "re.Match[str]") -> str:
+        placeholders.append(m.group(1))
+        return f"\x00PROTECT{len(placeholders) - 1}\x00"
+
+    safe = _TYPO_PROTECT_RE.sub(_stash, html_text)
+
+    # Step 2: 按顺序应用 6 类 pattern（每个独立 try 兜底，单点失败不影响其他）
+    pattern_specs = [
+        (_TYPO_GROUP_HEADING_V1_RE, _typo_replace_a_v1, "A1"),
+        (_TYPO_GROUP_HEADING_V2_RE, _typo_replace_a_v2, "A2"),
+        (_TYPO_ITEM_BLOCK_RE, _typo_replace_b, "B"),
+        (_TYPO_NUMBERED_ITEM_RE, _typo_replace_c, "C"),
+        (_TYPO_MIRROR_BLOCK_RE, _typo_replace_d, "D"),
+        (_TYPO_NARRATIVE_BLOCK_RE, _typo_replace_e, "E"),
+        (_TYPO_UNKNOWN_ITEM_RE, _typo_replace_f, "F"),
+    ]
+    for pat, fn, name in pattern_specs:
+        try:
+            safe = pat.sub(fn, safe)
+        except Exception as e:  # noqa: BLE001
+            warn(f"typography pattern {name} 失败：{e}（跳过该 pattern）")
+
+    # Step 3: 恢复保护块
+    for i, p in enumerate(placeholders):
+        safe = safe.replace(f"\x00PROTECT{i}\x00", p)
+    return safe
+
+
 # ---------- 数据预处理 ----------
 
 REQUIRED_TOP_V02 = ["domain", "chapters", "facts"]
@@ -448,6 +641,8 @@ def _render_chapters_html(chapters: Sequence[Any]) -> str:
         if not isinstance(narrative, str):
             narrative = _stringify(narrative)
         body, coda = _split_summary(narrative)
+        # v1.2：对 body 应用段落内层次后处理（A/B/C/D/E/F 六类 pattern）
+        body = _apply_typography_layers(body)
         # 中文编号：超过 10 章则留空（sample 固定 10 章）
         zh = ZH_NUMERAL[idx] if idx < len(ZH_NUMERAL) else str(chapter_num)
         # 关键：narrative_html 直接嵌入，不转义

@@ -980,6 +980,109 @@
     }
 
     /* ============================================================
+       v1.2 段落内层次：group / item / numbered / mirror / narrative / unknown
+       ============================================================ */
+    .group-heading {
+      font-family: var(--serif); font-size: 1.4rem; font-weight: 700;
+      color: var(--accent); margin: 2.4em 0 0.6em; padding-bottom: 0.3em;
+      border-bottom: 2px solid var(--accent-soft);
+      display: flex; align-items: baseline; letter-spacing: 0.05em; line-height: 1.3;
+    }
+    .group-heading .group-letter {
+      font-family: var(--kaiti); font-size: 1.6em; color: var(--accent);
+      margin-right: 0.5em; opacity: 0.7; flex-shrink: 0;
+    }
+    .group-intro {
+      font-family: var(--kaiti); color: var(--ink-soft); font-size: 0.98em;
+      margin: 0 0 1.4em; padding: 0 0.4em; line-height: 1.75; font-style: italic;
+    }
+
+    .item-block {
+      margin: 1em 0 1.3em; padding: 0.2em 0 0.2em 1.2em;
+      border-left: 2px solid var(--accent-soft);
+    }
+    .item-heading {
+      font-size: 1.05rem; font-weight: 600; color: var(--ink);
+      margin: 0 0 0.35em; display: flex; align-items: baseline; line-height: 1.5;
+    }
+    .item-heading .item-num {
+      display: inline-block; min-width: 2.4em; font-family: var(--mono);
+      color: var(--accent); font-weight: 700; font-size: 0.9em;
+      letter-spacing: 0.02em; flex-shrink: 0;
+    }
+    .item-block > p { margin: 0.3em 0 0; line-height: 1.75; }
+
+    .numbered-item {
+      margin: 1.8em 0; padding: 1em 1.3em 0.8em;
+      background: var(--mechanism-bg); border-left: 3px solid var(--accent);
+      border-radius: 0 2px 2px 0;
+    }
+    .numbered-heading {
+      font-size: 1.15rem; font-weight: 700; color: var(--ink);
+      margin: 0 0 0.5em; display: flex; align-items: baseline; line-height: 1.45;
+    }
+    .numbered-heading .num-label {
+      font-family: var(--kaiti); color: var(--accent);
+      margin-right: 0.6em; font-size: 1.1em; flex-shrink: 0;
+    }
+    .numbered-item > p { margin: 0; line-height: 1.8; }
+
+    .mirror-block {
+      margin: 1.6em 0; padding: 0.9em 1.2em;
+      border: 1px solid var(--accent-soft); border-left: 3px solid var(--accent);
+      border-radius: 0 2px 2px 0;
+    }
+    .mirror-heading {
+      font-size: 1.08rem; font-weight: 600; color: var(--ink);
+      margin: 0 0 0.4em; display: flex; align-items: baseline; line-height: 1.45;
+    }
+    .mirror-heading .mirror-num {
+      font-family: var(--kaiti); color: var(--accent);
+      margin-right: 0.5em; font-size: 1.15em; flex-shrink: 0;
+    }
+    .mirror-block > p { margin: 0; line-height: 1.8; }
+
+    .narrative-block {
+      margin: 1.6em 0; padding: 0.9em 1.2em;
+      background: var(--viewpoint-bg); border-radius: 3px;
+    }
+    .narrative-heading {
+      font-size: 1.08rem; font-weight: 600; color: var(--ink);
+      margin: 0 0 0.45em; display: flex; align-items: baseline;
+      flex-wrap: wrap; line-height: 1.45;
+    }
+    .narrative-heading .narrative-tag {
+      display: inline-block; background: var(--accent); color: var(--paper);
+      padding: 0.1em 0.6em; border-radius: 2px; font-size: 0.82em;
+      font-weight: 600; margin-right: 0.6em; letter-spacing: 0.05em;
+      font-family: var(--mono); flex-shrink: 0;
+    }
+    .narrative-block > p { margin: 0; line-height: 1.8; }
+
+    .unknown-item {
+      margin: 1.4em 0; padding: 0.4em 0 0.4em 2.8em; position: relative;
+    }
+    .unknown-item::before {
+      content: attr(data-num); position: absolute; left: 0; top: 0.35em;
+      width: 2em; height: 2em; border-radius: 50%;
+      background: var(--accent); color: var(--paper);
+      font-family: var(--mono); font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.85em; line-height: 1;
+    }
+    .unknown-heading {
+      font-size: 1.02rem; font-weight: 600; color: var(--ink);
+      margin: 0 0 0.3em; line-height: 1.55;
+    }
+    .unknown-item > p {
+      margin: 0.3em 0 0; color: var(--ink-soft);
+      font-size: 0.96em; line-height: 1.75;
+    }
+
+    /* 暗色模式微调（其余靠 CSS 变量自动适配） */
+    [data-theme="dark"] .group-heading .group-letter { opacity: 0.85; }
+
+    /* ============================================================
        #13 响应式 · 三档断点
        ============================================================ */
     @media (max-width: 1024px) {
@@ -1018,6 +1121,17 @@
       .fact-ref[data-tip]:hover::after {
         max-width: calc(100vw - 2 * var(--gutter));
       }
+      /* v1.2 段落内层次响应式 */
+      .group-heading { font-size: 1.2rem; }
+      .group-heading .group-letter { font-size: 1.4em; margin-right: 0.4em; }
+      .item-block { padding-left: 0.9em; }
+      .item-heading, .mirror-heading, .narrative-heading, .unknown-heading { font-size: 1rem; }
+      .numbered-heading { font-size: 1.05rem; }
+      .item-heading .item-num { min-width: 2.2em; }
+      .numbered-item { padding: 0.8em 1em 0.6em; }
+      .mirror-block, .narrative-block { padding: 0.75em 1em; }
+      .unknown-item { padding-left: 2.4em; }
+      .unknown-item::before { width: 1.7em; height: 1.7em; font-size: 0.8em; }
     }
 
     @media (max-width: 480px) {
@@ -1104,6 +1218,25 @@
 
       h2 { page-break-after: avoid; }
       footer.postscript { page-break-inside: avoid; }
+
+      /* v1.2 段落内层次打印 */
+      .group-heading, .numbered-heading, .mirror-heading,
+      .narrative-heading, .item-heading, .unknown-heading {
+        color: #000 !important; page-break-after: avoid;
+      }
+      .group-heading { border-color: #888 !important; }
+      .group-heading .group-letter, .numbered-heading .num-label,
+      .mirror-heading .mirror-num, .item-heading .item-num { color: #444 !important; }
+      .numbered-item, .narrative-block, .mirror-block, .item-block {
+        background: none !important; border-color: #888 !important;
+        page-break-inside: avoid;
+      }
+      .narrative-heading .narrative-tag {
+        background: none !important; color: #000 !important;
+        border: 1px solid #888;
+      }
+      .unknown-item { page-break-inside: avoid; }
+      .unknown-item::before { background: #444 !important; color: #fff !important; }
     }
   </style>
 </head>
