@@ -1,26 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-render.py — domain.json → 单文件 HTML 渲染器（domain-onboarding skill）
+render.py — domain.json → 单文件 HTML 渲染器（domain-onboarding skill, v0.2）
 
-用途
-----
-读取结构化中间产物 domain.json，注入 HTML 模板，输出单文件离线 HTML。
-零三方依赖，纯 stdlib，自实现极简模板引擎。
+v0.2 schema 变化
+----------------
+- chapters[] 主流程：10 章 narrative_html，已织入脚注/机制段落/观点引文，render
+  直接嵌入 H2 下面（不再拆解、不再做 HTML 转义）
+- 新增 subtitle / thesis_one_liner / known_unknowns_data
+- ai_disclaimer 由 V1 模板硬编码，render 不再需要单独渲染
 
-domain.json schema（节选 / 字段缺失会注入"未提供"占位并告警）
-----------------------------------------------------------
-domain, domain_slug, tier(flash|medium|deep), preset(tech|business|finance|culture),
-cutoff_date, thesis,
-skeleton: { concepts[], players[], timeline[], tensions[], learning_path[] },
-facts: [{id, text, source, grade(A|B|C|D)}, ...],
-mechanisms: [{id, text, fact_refs:[fact_id...]}, ...],
-viewpoints: [{id, text, mechanism_refs:[mech_id...], counter_evidence}, ...],
-reflexivity: { narrative, self_reinforce, failure_condition },
-isomorphisms: [{source, similarity, anti_similarity}, ...],
-structure_layer, paradigm_layer (dict),
-known_unknowns[], self_check_questions[], experts[{name, context}],
-sources[], ai_disclaimer, misreadings[], blind_spots[]
+兼容协议
+--------
+若 domain.json 不含 chapters[] 但含旧字段（skeleton/facts/mechanisms/viewpoints），
+退化到 v0.1 行为并打 stderr warning。
 
 CLI
 ---
@@ -40,7 +33,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
 
-# ---------- 极简模板引擎 ----------
+# ---------- 极简模板引擎（保持不变） ----------
 
 _VAR_RE = re.compile(r"\{\{\s*(@?[a-zA-Z_][\w\.]*)\s*\}\}")
 _RAW_RE = re.compile(r"\{\{\{\s*([a-zA-Z_][\w\.]*)\s*\}\}\}")
@@ -78,34 +71,7 @@ def _stringify(v: Any) -> str:
     return str(v)
 
 
-def _find_matching_close(tpl: str, start: int, kind: str) -> int:
-    """从 start 开始扫描，返回与 kind 配对的 {{/kind}} 的起始位置。-1 失败。"""
-    depth = 1
-    i = start
-    while i < len(tpl):
-        op = _BLOCK_OPEN_RE.search(tpl, i)
-        cl = _BLOCK_CLOSE_RE.search(tpl, i)
-        if not cl:
-            return -1
-        if op and op.start() < cl.start():
-            if op.group(1) == kind:
-                depth += 1
-            else:
-                # 不同类型嵌套也要计数（粗略：only same kind affects depth；
-                # 但模板里 if/each 互嵌时各自独立，需要分别配对——这里用栈处理）
-                return _find_matching_close_stack(tpl, start, kind)
-            i = op.end()
-        else:
-            if cl.group(1) == kind:
-                depth -= 1
-                if depth == 0:
-                    return cl.start()
-            i = cl.end()
-    return -1
-
-
 def _find_matching_close_stack(tpl: str, start: int, outer_kind: str) -> int:
-    """更稳的栈式扫描，处理 if/each 互嵌。"""
     stack = [outer_kind]
     i = start
     while i < len(tpl) and stack:
@@ -118,7 +84,6 @@ def _find_matching_close_stack(tpl: str, start: int, outer_kind: str) -> int:
             i = op.end()
         else:
             kind = cl.group(1)
-            # 弹出最近的同类项
             for j in range(len(stack) - 1, -1, -1):
                 if stack[j] == kind:
                     del stack[j]
@@ -130,7 +95,6 @@ def _find_matching_close_stack(tpl: str, start: int, outer_kind: str) -> int:
 
 
 def render_template(tpl: str, ctx: Dict[str, Any]) -> str:
-    """递归扫描，正确处理嵌套 each / if。"""
     out: List[str] = []
     i = 0
     while i < len(tpl):
@@ -138,18 +102,15 @@ def render_template(tpl: str, ctx: Dict[str, Any]) -> str:
         if not m_open:
             out.append(tpl[i:])
             break
-        # 把 m_open 之前的纯文本先处理
         out.append(tpl[i : m_open.start()])
         kind = m_open.group(1)
         key = m_open.group(2)
         body_start = m_open.end()
         close_pos = _find_matching_close_stack(tpl, body_start, kind)
         if close_pos < 0:
-            # 找不到闭合：原样输出剩余并退出
             out.append(tpl[m_open.start() :])
             break
         body = tpl[body_start:close_pos]
-        # 跳过 {{/kind}}
         close_match = _BLOCK_CLOSE_RE.match(tpl, close_pos)
         i = close_match.end() if close_match else close_pos
 
@@ -170,7 +131,7 @@ def render_template(tpl: str, ctx: Dict[str, Any]) -> str:
                     sub_ctx["this"] = item
                     sub_ctx["@index"] = idx
                     sub_ctx["@first"] = idx == 0
-                    sub_ctx["@last"] = False  # 末项后置覆写
+                    sub_ctx["@last"] = False
                     out.append(render_template(body, sub_ctx))
             elif isinstance(val, dict):
                 items = list(val.items())
@@ -184,7 +145,6 @@ def render_template(tpl: str, ctx: Dict[str, Any]) -> str:
                     out.append(render_template(body, sub_ctx))
 
     rendered = "".join(out)
-    # 变量替换最后一步
     rendered = _RAW_RE.sub(
         lambda m: _stringify(_resolve(m.group(1), ctx)), rendered
     )
@@ -195,13 +155,13 @@ def render_template(tpl: str, ctx: Dict[str, Any]) -> str:
     return rendered
 
 
-# ---------- SVG 生成器 ----------
+# ---------- SVG 生成器（保留） ----------
 
 GRADE_COLORS = {
-    "A": "#7a1f1f",  # 朱砂深
-    "B": "#c98a3a",  # 赭黄
-    "C": "#5b6f8a",  # 青灰
-    "D": "#9a9a9a",  # 灰
+    "A": "#7a1f1f",
+    "B": "#c98a3a",
+    "C": "#5b6f8a",
+    "D": "#9a9a9a",
 }
 
 
@@ -213,7 +173,7 @@ def grade_pie_svg(grade_counts: Dict[str, int], size: int = 180) -> str:
     r = size / 2 - 4
     parts: List[str] = []
     legend: List[str] = []
-    angle = -math.pi / 2  # 12 点方向
+    angle = -math.pi / 2
     for grade in ("A", "B", "C", "D"):
         n = grade_counts.get(grade, 0)
         if n == 0:
@@ -228,7 +188,6 @@ def grade_pie_svg(grade_counts: Dict[str, int], size: int = 180) -> str:
         large = 1 if sweep > math.pi else 0
         color = GRADE_COLORS[grade]
         if frac >= 0.999:
-            # 单一切片：直接画整圆
             parts.append(
                 f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="{color}" stroke="#fff" stroke-width="1"/>'
             )
@@ -260,127 +219,108 @@ def grade_pie_svg(grade_counts: Dict[str, int], size: int = 180) -> str:
     )
 
 
-def timeline_svg(events: Sequence[Dict[str, Any]], width: int = 760) -> str:
-    if not events:
-        return '<svg class="timeline-svg" width="100" height="40"><text x="0" y="20">无事件</text></svg>'
-    # 提取年份；若无 year 字段，按顺序均匀分布
-    years: List[Optional[float]] = []
-    for ev in events:
-        y = ev.get("year") if isinstance(ev, dict) else None
-        try:
-            years.append(float(y) if y is not None else None)
-        except (TypeError, ValueError):
-            years.append(None)
-    valid = [y for y in years if y is not None]
-    if valid and len(set(valid)) > 1:
-        ymin, ymax = min(valid), max(valid)
-    else:
-        ymin, ymax = 0.0, max(1, len(events) - 1)
-        years = [float(i) for i in range(len(events))]
-    pad = 40
-    inner_w = width - 2 * pad
-    height = 220
-    axis_y = 90
-    parts: List[str] = [
-        f'<line x1="{pad}" y1="{axis_y}" x2="{width-pad}" y2="{axis_y}" stroke="#444" stroke-width="1"/>'
-    ]
-    for i, ev in enumerate(events):
-        y = years[i]
-        if y is None:
-            y = ymin + (ymax - ymin) * (i / max(1, len(events) - 1))
-        if ymax == ymin:
-            x = pad + inner_w / 2
-        else:
-            x = pad + inner_w * (y - ymin) / (ymax - ymin)
-        label = html.escape(str(ev.get("event", ev.get("text", ""))))
-        year_lbl = html.escape(str(ev.get("year", "")))
-        flip = i % 2 == 0
-        ty = axis_y - 14 if flip else axis_y + 28
-        line_y = axis_y - 4 if flip else axis_y + 4
-        line_y2 = axis_y - 50 if flip else axis_y + 50
-        parts.append(
-            f'<line x1="{x:.1f}" y1="{line_y}" x2="{x:.1f}" y2="{line_y2}" stroke="#7a1f1f" stroke-width="1"/>'
-        )
-        parts.append(
-            f'<circle cx="{x:.1f}" cy="{axis_y}" r="4" fill="#7a1f1f"/>'
-        )
-        parts.append(
-            f'<text x="{x:.1f}" y="{ty}" text-anchor="middle" font-size="11" fill="#222">{year_lbl}</text>'
-        )
-        parts.append(
-            f'<text x="{x:.1f}" y="{ty + (-14 if flip else 14)}" text-anchor="middle" font-size="11" fill="#444">{label}</text>'
-        )
-    return (
-        f'<svg class="timeline-svg" width="{width}" height="{height}" '
-        f'viewBox="0 0 {width} {height}" role="img" aria-label="时间轴">'
-        + "".join(parts)
-        + "</svg>"
-    )
-
-
 def _esc(v: Any) -> str:
     return html.escape(_stringify(v), quote=True)
 
 
-def players_table_html(players: Sequence[Any]) -> str:
-    if not players:
-        return '<p class="muted">未提供玩家数据</p>'
-    rows: List[str] = []
-    for p in players:
-        if isinstance(p, dict):
-            name = html.escape(str(p.get("name", "未提供")))
-            role = html.escape(str(p.get("role", p.get("category", ""))))
-            note = html.escape(str(p.get("note", p.get("desc", ""))))
-            rel = html.escape(str(p.get("relation", "")))
-        else:
-            name, role, note, rel = html.escape(str(p)), "", "", ""
-        rows.append(
-            f"<tr><td>{name}</td><td>{role}</td><td>{rel}</td><td>{note}</td></tr>"
-        )
-    return (
-        '<table class="players-table"><thead><tr>'
-        "<th>玩家</th><th>角色/类别</th><th>关系</th><th>备注</th>"
-        "</tr></thead><tbody>"
-        + "".join(rows)
-        + "</tbody></table>"
-    )
-
-
 # ---------- 数据预处理 ----------
 
-REQUIRED_TOP = [
-    "domain",
-    "tier",
-    "thesis",
-    "facts",
+REQUIRED_TOP_V02 = ["domain", "tier", "chapters", "facts"]
+PLACEHOLDER = "未提供"
+
+# v0.2 章节 id → tier class 映射
+TIER_BY_CHAPTER_ID: Dict[str, str] = {
+    "what-and-why": "flash",
+    "history": "flash",
+    "players": "flash",
+    "insider": "flash",
+    "structural": "medium",
+    "paradigm": "deep",
+    "isomorphism": "deep",
+    "reflexivity": "medium",
+    "learning-path": "deep",
+    "unknowns": "deep",
+}
+
+# 旧 schema 字段（用于检测和 deprecation 提示）
+# 注意：self_check_questions / experts / known_unknowns_data 在 v0.2 仍是合法旁路数据，
+# 不在此列表中。这里只列必须被 chapters[].narrative_html 内化的"叙事级"字段。
+LEGACY_FIELDS = [
+    "skeleton",
     "mechanisms",
     "viewpoints",
+    "reflexivity",
+    "isomorphisms",
+    "structure_layer",
+    "paradigm_layer",
+    "known_unknowns",
+    "misreadings",
+    "blind_spots",
 ]
-
-PLACEHOLDER = "未提供"
 
 
 def warn(msg: str) -> None:
     print(f"[render.py warning] {msg}", file=sys.stderr)
 
 
+def _has_v02_chapters(data: Dict[str, Any]) -> bool:
+    chapters = data.get("chapters")
+    return isinstance(chapters, list) and len(chapters) > 0
+
+
 def normalize(data: Dict[str, Any]) -> Dict[str, Any]:
-    for k in REQUIRED_TOP:
-        if k not in data or data[k] in (None, "", []):
-            warn(f"缺字段：{k}（注入占位）")
+    """将 domain.json 标准化（注入占位/派生字段）。
+    v0.2 主流程基于 chapters[]；若无 chapters 但有旧字段，退化到 v0.1。
+    """
+    use_v02 = _has_v02_chapters(data)
+    data["_schema_v02"] = use_v02
+
+    if use_v02:
+        # v0.2 必需字段
+        for k in REQUIRED_TOP_V02:
+            if k not in data or data[k] in (None, "", []):
+                warn(f"缺字段：{k}（注入占位）")
+        # 检测残留旧字段
+        legacy_present = [k for k in LEGACY_FIELDS if data.get(k)]
+        if legacy_present:
+            warn(
+                f"检测到旧 schema 字段（已被 chapters[] 内化）：{legacy_present}；"
+                f"v0.2 主渲染流程会忽略这些字段，请将其叙事化进 chapters[].narrative_html"
+            )
+    else:
+        # 兼容旧 schema：检查 v0.1 字段
+        for k in ("domain", "tier", "thesis", "facts", "mechanisms", "viewpoints"):
+            if k not in data or data[k] in (None, "", []):
+                warn(f"缺字段：{k}（注入占位）")
+        warn(
+            "未检测到 chapters[]（v0.2 schema），退化到 v0.1 旧渲染逻辑——建议升级到 chapters[] 章节弧线"
+        )
+
+    # 顶层占位
     data.setdefault("domain", PLACEHOLDER)
     data.setdefault("domain_slug", "domain")
     data.setdefault("tier", "medium")
     data.setdefault("preset", "tech")
     data.setdefault("cutoff_date", PLACEHOLDER)
+    data.setdefault("subtitle", "")
     data.setdefault("thesis", PLACEHOLDER)
+    data.setdefault("thesis_one_liner", data.get("thesis", PLACEHOLDER))
     data.setdefault("ai_disclaimer", "")
 
+    # v0.2 数据源
+    data.setdefault("chapters", [])
+    data.setdefault("known_unknowns_data", [])
+
+    # 通用集合（v0.1/v0.2 共享）
+    data.setdefault("facts", [])
+    data.setdefault("experts", [])
+    data.setdefault("self_check_questions", [])
+    data.setdefault("sources", [])
+
+    # 旧 schema 的 fallback 容器
     skel = data.setdefault("skeleton", {})
     for k in ("concepts", "players", "timeline", "tensions", "learning_path"):
         skel.setdefault(k, [])
-
-    data.setdefault("facts", [])
     data.setdefault("mechanisms", [])
     data.setdefault("viewpoints", [])
     data.setdefault("reflexivity", {})
@@ -388,17 +328,16 @@ def normalize(data: Dict[str, Any]) -> Dict[str, Any]:
     data.setdefault("structure_layer", {})
     data.setdefault("paradigm_layer", {})
     data.setdefault("known_unknowns", [])
-    data.setdefault("self_check_questions", [])
-    data.setdefault("experts", [])
-    data.setdefault("sources", [])
     data.setdefault("misreadings", [])
     data.setdefault("blind_spots", [])
 
-    # facts: 给数字 anchor，方便 quality_check 通过 id="fact-N" 数
+    # facts 标准化（两套 schema 都需要）
     fact_id_to_anchor: Dict[str, str] = {}
     for i, f in enumerate(data["facts"], start=1):
         f.setdefault("id", f"f{i}")
         f["anchor"] = f"fact-{i}"
+        f["data_anchor"] = f"fact-data-{i}"
+        f["index"] = i
         fact_id_to_anchor[str(f["id"])] = f["anchor"]
         fact_id_to_anchor[str(i)] = f["anchor"]
         f.setdefault("text", PLACEHOLDER)
@@ -408,31 +347,30 @@ def normalize(data: Dict[str, Any]) -> Dict[str, Any]:
             g = "C"
         f["grade"] = g
 
-    # mechanisms / viewpoints id；将 fact_refs 翻译成可点击的锚点 list
-    for i, m in enumerate(data["mechanisms"], start=1):
-        m.setdefault("id", f"m{i}")
-        m.setdefault("text", PLACEHOLDER)
-        m.setdefault("fact_refs", [])
-        m["fact_anchors"] = [
-            {"anchor": fact_id_to_anchor.get(str(r), f"fact-{r}"), "label": str(r)}
-            for r in m["fact_refs"]
-        ]
-    for i, v in enumerate(data["viewpoints"], start=1):
-        v.setdefault("id", f"v{i}")
-        v.setdefault("text", PLACEHOLDER)
-        v.setdefault("mechanism_refs", [])
-        v.setdefault("counter_evidence", PLACEHOLDER)
+    # 旧机制/观点 id（仅旧 schema fallback 用）
+    if not use_v02:
+        for i, m in enumerate(data["mechanisms"], start=1):
+            m.setdefault("id", f"m{i}")
+            m.setdefault("text", PLACEHOLDER)
+            m.setdefault("fact_refs", [])
+            m["fact_anchors"] = [
+                {"anchor": fact_id_to_anchor.get(str(r), f"fact-{r}"), "label": str(r)}
+                for r in m["fact_refs"]
+            ]
+        for i, v in enumerate(data["viewpoints"], start=1):
+            v.setdefault("id", f"v{i}")
+            v.setdefault("text", PLACEHOLDER)
+            v.setdefault("mechanism_refs", [])
+            v.setdefault("counter_evidence", PLACEHOLDER)
 
-    # 派生字段
+    # 等级计数 / 派生字段
     grade_counts: Dict[str, int] = {"A": 0, "B": 0, "C": 0, "D": 0}
     for f in data["facts"]:
         grade_counts[f["grade"]] = grade_counts.get(f["grade"], 0) + 1
     data["grade_counts"] = grade_counts
     data["grade_pie_svg"] = grade_pie_svg(grade_counts)
-    data["timeline_svg"] = timeline_svg(skel.get("timeline", []))
-    data["players_table_html"] = players_table_html(skel.get("players", []))
 
-    # 来源分级表行
+    # 来源分级表行（保留：底部折叠区还要用）
     total = sum(grade_counts.values()) or 1
     rows: List[str] = []
     for g in ("A", "B", "C", "D"):
@@ -447,7 +385,6 @@ def normalize(data: Dict[str, Any]) -> Dict[str, Any]:
         "<tbody>" + "".join(rows) + "</tbody></table>"
     )
 
-    # 顶部小占位符（百分比、tier 标签、阅读时间、生成日期等）
     pct_str = lambda g: f"{grade_counts.get(g, 0)*100/total:.0f}%"
     data["grade_a_pct"] = pct_str("A")
     data["grade_b_pct"] = pct_str("B")
@@ -455,11 +392,7 @@ def normalize(data: Dict[str, Any]) -> Dict[str, Any]:
     data["grade_d_pct"] = pct_str("D")
 
     tier = data.get("tier", "medium")
-    tier_label_map = {
-        "flash": "⚡ 闪研",
-        "medium": "📖 精研",
-        "deep": "🔬 深研",
-    }
+    tier_label_map = {"flash": "⚡ 闪研", "medium": "📖 精研", "deep": "🔬 深研"}
     reading_time_map = {
         "flash": "约 30 分钟",
         "medium": "约 60 分钟",
@@ -469,9 +402,6 @@ def normalize(data: Dict[str, Any]) -> Dict[str, Any]:
     data["reading_time"] = reading_time_map.get(tier, "约 60 分钟")
     data["fact_count"] = len(data["facts"])
     data.setdefault("domain_name", data.get("domain", PLACEHOLDER))
-    data.setdefault(
-        "thesis_one_liner", data.get("thesis", PLACEHOLDER)
-    )
     data["generation_date"] = datetime.date.today().isoformat()
 
     # 预渲染 HTML 片段
@@ -480,7 +410,130 @@ def normalize(data: Dict[str, Any]) -> Dict[str, Any]:
     return data
 
 
-# ---------- HTML 片段预渲染 ----------
+# ---------- HTML 片段预渲染（v0.2 主路径） ----------
+
+def _render_chapters_html(chapters: Sequence[Any]) -> str:
+    """v0.2 主流程：把 chapters[] 渲染成连续 section，每章带 tier-{level} class。
+    narrative_html 直接嵌入（不做 HTML 转义）—— sample 已织入脚注/机制/观点。
+    """
+    if not chapters:
+        return (
+            '<section class="chapter tier-flash" id="chapter-empty">'
+            '<h2>章节内容缺失</h2>'
+            '<p class="muted">domain.json 中 chapters[] 为空，无法渲染主体内容。</p>'
+            '</section>'
+        )
+    blocks: List[str] = []
+    for idx, ch in enumerate(chapters, start=1):
+        if not isinstance(ch, dict):
+            continue
+        cid = str(ch.get("id", f"chapter-{idx}"))
+        title = _esc(ch.get("title", PLACEHOLDER))
+        narrative = ch.get("narrative_html") or ""
+        if not isinstance(narrative, str):
+            narrative = _stringify(narrative)
+        tier_level = TIER_BY_CHAPTER_ID.get(cid, "flash")
+        # 关键：narrative_html 直接嵌入，不转义
+        blocks.append(
+            f'<section class="chapter tier-{tier_level}" id="chapter-{_esc(cid)}">'
+            f'<h2>{title}</h2>\n'
+            f'{narrative}\n'
+            f'</section>'
+        )
+    return "\n".join(blocks)
+
+
+def _render_facts_complete_list_html(facts: Sequence[Dict[str, Any]]) -> str:
+    """完整事实清单（底部折叠区）；narrative 里的脚注 [N] href="#fact-data-N"
+    指向这里。"""
+    if not facts:
+        return '<p class="muted">未提供事实清单</p>'
+    rows: List[str] = []
+    for f in facts:
+        idx = f.get("index", "?")
+        data_anchor = _esc(f.get("data_anchor", f"fact-data-{idx}"))
+        text = _esc(f.get("text", PLACEHOLDER))
+        source = _esc(f.get("source", PLACEHOLDER))
+        grade = _esc(f.get("grade", "C"))
+        # narrative 中的 [N] 锚点 id="fact-N"，用户从清单回跳时也保留导航
+        # 此处的 li id 是数据锚点
+        rows.append(
+            f'<li id="{data_anchor}" class="fact-entry">'
+            f'<span class="grade-{grade}">[{grade}]</span> '
+            f'<span class="fact-text">{text}</span> '
+            f'<span class="source muted">来源：{source}</span>'
+            f'</li>'
+        )
+    return '<ol class="facts-complete-list">' + "".join(rows) + "</ol>"
+
+
+def _render_known_unknowns_data_html(items: Sequence[Any]) -> str:
+    """旁路数据 ul（折叠），让 quality_check 数 li 满足下限。"""
+    if not items:
+        return (
+            '<ul id="known-unknowns-list" class="unknowns-data-list">'
+            '<li>未提供已知的未知数据条目</li></ul>'
+        )
+    rows: List[str] = []
+    for u in items:
+        if isinstance(u, dict):
+            q = _esc(u.get("q", u.get("question", PLACEHOLDER)))
+            where = _esc(u.get("where", u.get("hint", "")))
+            extra = f' — {where}' if where else ''
+            rows.append(f"<li><strong>{q}</strong>{extra}</li>")
+        else:
+            rows.append(f"<li>{_esc(u)}</li>")
+    return (
+        '<ul id="known-unknowns-list" class="unknowns-data-list">'
+        + "".join(rows)
+        + '</ul>'
+    )
+
+
+def _render_recommendations_html(experts: Sequence[Any]) -> str:
+    if not experts:
+        return (
+            '<ul class="recommendations-list">'
+            '<li>未提供推荐人/账号/社区——读者应自行寻找一手发声者</li>'
+            '<li>建议：从领域顶级会议演讲者、长期写作的从业者、被反复引用的研究者入手</li>'
+            '<li>验证方法：交叉对比 ≥3 位独立来源，看观点分歧而非共识</li>'
+            '</ul>'
+        )
+    rows: List[str] = []
+    for e in experts:
+        if isinstance(e, dict):
+            name = _esc(e.get("name", PLACEHOLDER))
+            ctx = _esc(e.get("context", e.get("desc", "")))
+            rows.append(f"<li><strong>{name}</strong> — {ctx}</li>")
+        else:
+            rows.append(f"<li>{_esc(e)}</li>")
+    return '<ul class="recommendations-list">' + "".join(rows) + "</ul>"
+
+
+def _render_self_check_html(qs: Sequence[Any]) -> str:
+    if not qs:
+        return '<p class="muted">未提供自检题</p>'
+    blocks: List[str] = []
+    for q in qs:
+        if isinstance(q, dict):
+            qt = _esc(q.get("q", q.get("question", PLACEHOLDER)))
+            ans = _esc(q.get("a", q.get("answer", "")))
+            blocks.append(
+                '<details class="self-check">'
+                f'<summary>{qt}</summary>'
+                f'<dd class="answer">{ans}</dd>'
+                '</details>'
+            )
+        else:
+            blocks.append(
+                '<details class="self-check">'
+                f'<summary>{_esc(q)}</summary>'
+                '</details>'
+            )
+    return "\n".join(blocks)
+
+
+# ---------- v0.1 fallback 渲染器（保留以兼容旧 sample） ----------
 
 def _render_concepts_html(items: Sequence[Any]) -> str:
     if not items:
@@ -500,7 +553,7 @@ def _render_concepts_html(items: Sequence[Any]) -> str:
     return '<ul class="concepts-list">' + "".join(rows) + "</ul>"
 
 
-def _render_players_html(players: Sequence[Any]) -> str:
+def _render_players_html_legacy(players: Sequence[Any]) -> str:
     if not players:
         return '<p class="muted">未提供玩家数据</p>'
     rows: List[str] = []
@@ -524,61 +577,7 @@ def _render_players_html(players: Sequence[Any]) -> str:
     )
 
 
-def _render_timeline_html(events: Sequence[Any], svg: str) -> str:
-    parts = [svg or ""]
-    if events:
-        rows: List[str] = []
-        for ev in events:
-            if isinstance(ev, dict):
-                year = _esc(ev.get("year", ""))
-                text = _esc(ev.get("event", ev.get("text", "")))
-            else:
-                year, text = "", _esc(ev)
-            rows.append(f"<li><strong>{year}</strong> · {text}</li>")
-        parts.append('<ol class="timeline-list">' + "".join(rows) + "</ol>")
-    return "\n".join(parts)
-
-
-def _render_tensions_html(items: Sequence[Any]) -> str:
-    if not items:
-        return '<p class="muted">未提供矛盾结构</p>'
-    rows = []
-    for t in items:
-        if isinstance(t, dict):
-            text = _esc(t.get("text", t.get("tension", str(t))))
-        else:
-            text = _esc(t)
-        rows.append(f"<li>{text}</li>")
-    return '<ul class="tensions-list">' + "".join(rows) + "</ul>"
-
-
-def _render_learning_path_html(items: Sequence[Any]) -> str:
-    if not items:
-        return '<p class="muted">未提供学习路径</p>'
-    blocks: List[str] = []
-    for it in items:
-        if isinstance(it, dict):
-            cat = _esc(it.get("category", it.get("phase", PLACEHOLDER)))
-            sub = it.get("items", it.get("list", []))
-            if isinstance(sub, list) and sub:
-                lis = "".join(f"<li>{_esc(x)}</li>" for x in sub)
-                blocks.append(
-                    f'<div class="learning-step"><h4>{cat}</h4>'
-                    f'<ul>{lis}</ul></div>'
-                )
-            else:
-                desc = _esc(it.get("desc", it.get("text", "")))
-                blocks.append(
-                    f'<div class="learning-step"><h4>{cat}</h4><p>{desc}</p></div>'
-                )
-        else:
-            blocks.append(f"<li>{_esc(it)}</li>")
-    if all(b.startswith("<li>") for b in blocks):
-        return '<ol class="learning-path-list">' + "".join(blocks) + "</ol>"
-    return '<div class="learning-path">' + "".join(blocks) + "</div>"
-
-
-def _render_facts_html(facts: Sequence[Dict[str, Any]]) -> str:
+def _render_legacy_facts_html(facts: Sequence[Dict[str, Any]]) -> str:
     if not facts:
         return '<p class="muted">未提供事实</p>'
     rows: List[str] = []
@@ -598,7 +597,7 @@ def _render_facts_html(facts: Sequence[Dict[str, Any]]) -> str:
     return '<ol class="facts-list">' + "".join(rows) + "</ol>"
 
 
-def _render_mechanisms_html(mechs: Sequence[Dict[str, Any]]) -> str:
+def _render_legacy_mechanisms_html(mechs: Sequence[Dict[str, Any]]) -> str:
     if not mechs:
         return '<p class="muted">未提供机制</p>'
     blocks: List[str] = []
@@ -606,22 +605,21 @@ def _render_mechanisms_html(mechs: Sequence[Dict[str, Any]]) -> str:
         text = _esc(m.get("text", PLACEHOLDER))
         mid = _esc(m.get("id", ""))
         anchors = m.get("fact_anchors", [])
-        # 数据属性里放原始引用
         refs_attr = ",".join(_stringify(r) for r in m.get("fact_refs", []))
         ref_links = "".join(
             f'<a class="fact-ref" href="#{a.get("anchor","")}">{html.escape(_stringify(a.get("label","")))}</a> '
             for a in anchors
         )
         blocks.append(
-            f'<div class="mechanism" id="{mid}" data-fact-refs="{html.escape(refs_attr, quote=True)}">'
-            f'<p class="mech-text"><strong>机制：</strong>{text}</p>'
-            f'<p class="mech-refs muted">支撑事实：{ref_links}</p>'
-            f'</div>'
+            f'<p class="mechanism" id="{mid}" data-fact-refs="{html.escape(refs_attr, quote=True)}">'
+            f'<strong>机制：</strong>{text} '
+            f'<span class="mech-refs muted">支撑事实：{ref_links}</span>'
+            f'</p>'
         )
     return "\n".join(blocks)
 
 
-def _render_viewpoints_html(views: Sequence[Dict[str, Any]]) -> str:
+def _render_legacy_viewpoints_html(views: Sequence[Dict[str, Any]]) -> str:
     if not views:
         return '<p class="muted">未提供观点</p>'
     blocks: List[str] = []
@@ -629,237 +627,194 @@ def _render_viewpoints_html(views: Sequence[Dict[str, Any]]) -> str:
         text = _esc(v.get("text", PLACEHOLDER))
         vid = _esc(v.get("id", ""))
         counter = v.get("counter_evidence") or ""
-        counter_html = ""
         if counter and counter != PLACEHOLDER:
-            counter_html = (
-                f'<div class="counter">{_esc(counter)}</div>'
-            )
+            counter_html = f'<span class="counter">{_esc(counter)}</span>'
         else:
             counter_html = (
-                '<div class="counter">反例：暂无明确反证；证伪条件待补。</div>'
+                '<span class="counter">但是：暂无明确反证；证伪条件待补。</span>'
             )
-        m_refs = v.get("mechanism_refs", [])
-        m_links = "".join(
-            f'<a href="#{_esc(r)}">{_esc(r)}</a> ' for r in m_refs
-        )
         blocks.append(
-            f'<div class="viewpoint" id="{vid}">'
-            f'<p class="vp-text"><strong>观点：</strong>{text}</p>'
-            f'{counter_html}'
-            + (
-                f'<p class="vp-refs muted">基于机制：{m_links}</p>'
-                if m_links
-                else ''
-            )
-            + '</div>'
+            f'<blockquote class="viewpoint" id="{vid}">'
+            f'{text} {counter_html}'
+            '</blockquote>'
         )
     return "\n".join(blocks)
 
 
-def _render_reflexivity_html(refl: Dict[str, Any]) -> str:
-    if not refl:
-        return '<p class="muted">未提供反身性分析</p>'
-    narrative = _esc(refl.get("narrative", PLACEHOLDER))
-    self_re = _esc(refl.get("self_reinforce", PLACEHOLDER))
-    fail = _esc(refl.get("failure_condition", PLACEHOLDER))
-    return (
-        '<dl class="reflexivity">'
-        f'<dt>主流叙事</dt><dd>{narrative}</dd>'
-        f'<dt>自我证实链路</dt><dd>{self_re}</dd>'
-        f'<dt>失效条件（如果……则叙事崩塌）</dt><dd>{fail}</dd>'
-        '</dl>'
-    )
-
-
-def _render_misconceptions_html(mis: Sequence[Any], blind: Sequence[Any]) -> str:
-    parts: List[str] = []
-    if mis:
-        lis = "".join(f"<li>{_esc(x)}</li>" for x in mis)
-        parts.append(f"<h3>外部误读</h3><ul>{lis}</ul>")
-    if blind:
-        lis = "".join(f"<li>{_esc(x)}</li>" for x in blind)
-        parts.append(f"<h3>局内人盲区</h3><ul>{lis}</ul>")
-    if not parts:
-        return '<p class="muted">未提供认知误区</p>'
-    return "\n".join(parts)
-
-
-def _render_kv_html(d: Dict[str, Any], empty_msg: str) -> str:
-    if not d:
-        return f'<p class="muted">{empty_msg}</p>'
-    rows: List[str] = []
-    for k, v in d.items():
-        rows.append(f"<dt>{_esc(k)}</dt><dd>{_esc(v)}</dd>")
-    return "<dl>" + "".join(rows) + "</dl>"
-
-
-def _render_isomorphism_html(items: Sequence[Any]) -> str:
-    if not items:
-        return '<p class="muted">未提供跨领域同构案例</p>'
-    blocks: List[str] = []
-    for it in items:
+def _render_legacy_chapters_html(data: Dict[str, Any]) -> str:
+    """v0.1 fallback：把旧字段拼成 v0.2 风格的章节序列，让模板能渲染。"""
+    skel = data.get("skeleton", {})
+    chapters_synthesized: List[Dict[str, Any]] = []
+    # 1. what-and-why（用 thesis 作为开场）
+    chapters_synthesized.append({
+        "id": "what-and-why",
+        "title": "这是什么 · 为什么现在值得花一小时",
+        "narrative_html": f'<p>{_esc(data.get("thesis", PLACEHOLDER))}</p>'
+                          + _render_concepts_html(skel.get("concepts", [])),
+    })
+    # 2. history
+    timeline = skel.get("timeline", [])
+    if timeline:
+        rows = "".join(
+            f"<li><strong>{_esc(ev.get('year','') if isinstance(ev,dict) else '')}</strong> · "
+            f"{_esc(ev.get('event', ev.get('text','')) if isinstance(ev,dict) else ev)}</li>"
+            for ev in timeline
+        )
+        chapters_synthesized.append({
+            "id": "history",
+            "title": "它怎么走到今天",
+            "narrative_html": f'<ol class="timeline-list">{rows}</ol>',
+        })
+    # 3. players
+    chapters_synthesized.append({
+        "id": "players",
+        "title": "谁在场上 · 谁在赌什么",
+        "narrative_html": _render_players_html_legacy(skel.get("players", [])),
+    })
+    # 4. insider（合并误读+盲区）
+    insider_parts = []
+    if data.get("misreadings"):
+        lis = "".join(f"<li>{_esc(x)}</li>" for x in data["misreadings"])
+        insider_parts.append(f'<h3>外部误读</h3><ul>{lis}</ul>')
+    if data.get("blind_spots"):
+        lis = "".join(f"<li>{_esc(x)}</li>" for x in data["blind_spots"])
+        insider_parts.append(f'<h3>圈内盲区</h3><ul>{lis}</ul>')
+    if insider_parts:
+        chapters_synthesized.append({
+            "id": "insider",
+            "title": "圈内人才懂的几件事",
+            "narrative_html": "\n".join(insider_parts),
+        })
+    # 5. structural
+    if data.get("structure_layer"):
+        rows = "".join(
+            f"<dt>{_esc(k)}</dt><dd>{_esc(v)}</dd>" for k, v in data["structure_layer"].items()
+        )
+        chapters_synthesized.append({
+            "id": "structural",
+            "title": "表面之下 · 几条不可变的约束",
+            "narrative_html": f'<dl>{rows}</dl>',
+        })
+    # 6. paradigm
+    if data.get("paradigm_layer"):
+        rows = "".join(
+            f"<dt>{_esc(k)}</dt><dd>{_esc(v)}</dd>" for k, v in data["paradigm_layer"].items()
+        )
+        chapters_synthesized.append({
+            "id": "paradigm",
+            "title": "这是什么时期 · 异端正从边缘浮现",
+            "narrative_html": f'<dl>{rows}</dl>',
+        })
+    # 7. isomorphism
+    iso_blocks = []
+    for it in data.get("isomorphisms", []):
         if isinstance(it, dict):
-            src = _esc(it.get("source", PLACEHOLDER))
-            sim = _esc(it.get("similarity", PLACEHOLDER))
-            anti = _esc(it.get("anti_similarity", PLACEHOLDER))
-            blocks.append(
-                '<div class="isomorphism">'
-                f'<h4>对照：{src}</h4>'
-                f'<p><strong>同构点：</strong>{sim}</p>'
-                f'<p><strong>反同构点（不能照搬）：</strong>{anti}</p>'
-                '</div>'
+            iso_blocks.append(
+                f'<h4>对照：{_esc(it.get("source", PLACEHOLDER))}</h4>'
+                f'<p>同构：{_esc(it.get("similarity", PLACEHOLDER))}</p>'
+                f'<p>但是反过来：{_esc(it.get("anti_similarity", PLACEHOLDER))}</p>'
             )
-        else:
-            blocks.append(f"<p>{_esc(it)}</p>")
-    return "\n".join(blocks)
+    if iso_blocks:
+        chapters_synthesized.append({
+            "id": "isomorphism",
+            "title": "别处的故事 · 镜照本地",
+            "narrative_html": "\n".join(iso_blocks),
+        })
+    # 8. reflexivity
+    refl = data.get("reflexivity", {})
+    if refl:
+        chapters_synthesized.append({
+            "id": "reflexivity",
+            "title": "主流叙事 · 它如何自我强化又如何崩",
+            "narrative_html": (
+                f'<p><strong>主流叙事：</strong>{_esc(refl.get("narrative", PLACEHOLDER))}</p>'
+                f'<p><strong>自我证实链路：</strong>{_esc(refl.get("self_reinforce", PLACEHOLDER))}</p>'
+                f'<p><strong>失效条件：</strong>如果 {_esc(refl.get("failure_condition", PLACEHOLDER))}，整个故事就崩。</p>'
+            ),
+        })
+    # 9. learning-path
+    lp = skel.get("learning_path", [])
+    if lp:
+        items = "".join(f"<li>{_esc(x)}</li>" for x in lp)
+        chapters_synthesized.append({
+            "id": "learning-path",
+            "title": "接下来你应该读什么 · 信谁",
+            "narrative_html": f'<ol>{items}</ol>',
+        })
+    # 10. unknowns
+    ku = data.get("known_unknowns", [])
+    if ku:
+        items = "".join(f"<li>{_esc(x)}</li>" for x in ku)
+        chapters_synthesized.append({
+            "id": "unknowns",
+            "title": "我（AI）不知道的几件事",
+            "narrative_html": f'<ul>{items}</ul>',
+        })
 
-
-def _render_known_unknowns_html(items: Sequence[Any]) -> str:
-    if not items:
-        return (
-            '<ul id="known-unknowns-list" class="unknowns-list">'
-            '<li>未提供已知的未知清单</li></ul>'
-        )
-    rows: List[str] = []
-    for u in items:
-        if isinstance(u, dict):
-            q = _esc(u.get("q", u.get("question", PLACEHOLDER)))
-            where = _esc(u.get("where", u.get("hint", "")))
-            extra = (
-                f' <span class="muted">（线索：{where}）</span>' if where else ''
-            )
-            rows.append(f"<li>{q}{extra}</li>")
-        else:
-            rows.append(f"<li>{_esc(u)}</li>")
-    return (
-        '<ul id="known-unknowns-list" class="unknowns-list">'
-        + "".join(rows)
-        + '</ul>'
+    # 把旧的 facts/mechanisms/viewpoints 块附加到 evidence-chain（藏在 what-and-why 后面）
+    legacy_evidence = (
+        '<section class="legacy-evidence-chain">'
+        '<h3>事实清单（旧 schema）</h3>'
+        + _render_legacy_facts_html(data.get("facts", []))
+        + '<h3>机制段落（旧 schema）</h3>'
+        + _render_legacy_mechanisms_html(data.get("mechanisms", []))
+        + '<h3>观点引文（旧 schema）</h3>'
+        + _render_legacy_viewpoints_html(data.get("viewpoints", []))
+        + '</section>'
     )
+    if chapters_synthesized:
+        chapters_synthesized[0]["narrative_html"] += "\n" + legacy_evidence
 
-
-def _render_self_check_html(qs: Sequence[Any]) -> str:
-    if not qs:
-        return '<p class="muted">未提供自检题</p>'
-    blocks: List[str] = []
-    for q in qs:
-        if isinstance(q, dict):
-            qt = _esc(q.get("q", q.get("question", PLACEHOLDER)))
-            ans = _esc(q.get("a", q.get("answer", "")))
-            blocks.append(
-                '<details class="self-check">'
-                f'<summary>{qt}</summary>'
-                f'<div class="answer">{ans}</div>'
-                '</details>'
-            )
-        else:
-            blocks.append(
-                '<details class="self-check">'
-                f'<summary>{_esc(q)}</summary>'
-                '</details>'
-            )
-    return "\n".join(blocks)
-
-
-def _render_sources_list_html(facts: Sequence[Dict[str, Any]], sources: Sequence[Any]) -> str:
-    rows: List[str] = []
-    for f in facts:
-        anchor = _esc(f.get("anchor", ""))
-        text = _esc(f.get("text", PLACEHOLDER))
-        source = _esc(f.get("source", PLACEHOLDER))
-        grade = _esc(f.get("grade", "C"))
-        grade_lc = grade.lower()
-        rows.append(
-            f'<li id="src-{anchor}"><a href="#{anchor}">{anchor}</a> '
-            f'<span class="grade grade-{grade_lc}">{grade}</span> '
-            f'{text} <span class="muted">— {source}</span></li>'
-        )
-    if not rows:
-        return '<p class="muted">未提供来源</p>'
-    return '<ol class="sources-list">' + "".join(rows) + "</ol>"
-
-
-def _render_recommendations_html(experts: Sequence[Any]) -> str:
-    if not experts:
-        return (
-            '<ul class="recommendations-list">'
-            '<li>未提供推荐人/账号/社区——读者应自行寻找一手发声者</li>'
-            '<li>建议：从领域顶级会议演讲者、长期写作的从业者、被反复引用的研究者入手</li>'
-            '<li>验证方法：交叉对比 ≥3 位独立来源，看观点分歧而非共识</li>'
-            '</ul>'
-        )
-    rows: List[str] = []
-    for e in experts:
-        if isinstance(e, dict):
-            name = _esc(e.get("name", PLACEHOLDER))
-            ctx = _esc(e.get("context", e.get("desc", "")))
-            rows.append(f"<li><strong>{name}</strong> — {ctx}</li>")
-        else:
-            rows.append(f"<li>{_esc(e)}</li>")
-    return '<ul class="recommendations-list">' + "".join(rows) + "</ul>"
-
-
-def _render_ai_disclaimer_extra_html(text: str) -> str:
-    if not text:
-        return ""
-    return f'<p class="ai-disclaimer-extra">{_esc(text)}</p>'
+    return _render_chapters_html(chapters_synthesized)
 
 
 def build_html_fragments(data: Dict[str, Any]) -> None:
-    """把结构化字段预渲染成 HTML 字符串，注入 ctx 的 *_html 字段。"""
-    skel = data.get("skeleton", {})
-    data["concepts_html"] = _render_concepts_html(skel.get("concepts", []))
-    data["players_html"] = _render_players_html(skel.get("players", []))
-    data["timeline_html"] = _render_timeline_html(
-        skel.get("timeline", []), data.get("timeline_svg", "")
+    """把结构化字段预渲染成 HTML 字符串，注入 ctx 的 *_html 字段。
+    v0.2 主路径：chapters_html / facts_complete_list_html / known_unknowns_data_html
+    旧 schema fallback：合成等价 chapters。
+    """
+    if data.get("_schema_v02"):
+        data["chapters_html"] = _render_chapters_html(data.get("chapters", []))
+    else:
+        data["chapters_html"] = _render_legacy_chapters_html(data)
+
+    data["facts_complete_list_html"] = _render_facts_complete_list_html(
+        data.get("facts", [])
     )
-    data["tensions_html"] = _render_tensions_html(skel.get("tensions", []))
-    data["learning_path_html"] = _render_learning_path_html(
-        skel.get("learning_path", [])
-    )
-    data["facts_html"] = _render_facts_html(data.get("facts", []))
-    data["mechanisms_html"] = _render_mechanisms_html(data.get("mechanisms", []))
-    data["viewpoints_html"] = _render_viewpoints_html(data.get("viewpoints", []))
-    data["reflexivity_html"] = _render_reflexivity_html(data.get("reflexivity", {}))
-    data["misconceptions_html"] = _render_misconceptions_html(
-        data.get("misreadings", []), data.get("blind_spots", [])
-    )
-    data["structure_html"] = _render_kv_html(
-        data.get("structure_layer", {}),
-        "未提供结构层分析（深研档建议补：reality-shaping 约束、替换条件后的形态变化）",
-    )
-    data["paradigm_html"] = _render_kv_html(
-        data.get("paradigm_layer", {}),
-        "未提供范式层分析（深研档建议补：硬核 / 异端 / 范式切换信号）",
-    )
-    data["isomorphism_html"] = _render_isomorphism_html(data.get("isomorphisms", []))
-    data["known_unknowns_html"] = _render_known_unknowns_html(
-        data.get("known_unknowns", [])
-    )
-    data["self_check_html"] = _render_self_check_html(
-        data.get("self_check_questions", [])
-    )
-    data["sources_list_html"] = _render_sources_list_html(
-        data.get("facts", []), data.get("sources", [])
+    data["known_unknowns_data_html"] = _render_known_unknowns_data_html(
+        data.get("known_unknowns_data", []) or data.get("known_unknowns", [])
     )
     data["recommendations_html"] = _render_recommendations_html(
         data.get("experts", [])
     )
-    data["ai_disclaimer_extra_html"] = _render_ai_disclaimer_extra_html(
-        data.get("ai_disclaimer", "")
+    data["self_check_html"] = _render_self_check_html(
+        data.get("self_check_questions", [])
     )
 
+    # 兼容性：保留几个旧占位符的别名（万一模板里还引用）
+    data.setdefault("ai_disclaimer_extra_html", "")
+    # 旧模板可能引用的 *_html 占位（v0.1 模板向后兼容）
+    if not data.get("_schema_v02"):
+        skel = data.get("skeleton", {})
+        data["concepts_html"] = _render_concepts_html(skel.get("concepts", []))
+        data["players_html"] = _render_players_html_legacy(skel.get("players", []))
+        data["facts_html"] = _render_legacy_facts_html(data.get("facts", []))
+        data["mechanisms_html"] = _render_legacy_mechanisms_html(data.get("mechanisms", []))
+        data["viewpoints_html"] = _render_legacy_viewpoints_html(data.get("viewpoints", []))
 
-# ---------- 默认模板 fallback ----------
+
+# ---------- 默认模板 fallback (v0.2 风格) ----------
 
 def default_template() -> str:
-    """模板未就绪时使用的兜底模板，保证脚本可独立运行。"""
+    """模板未就绪时使用的兜底模板，保证脚本可独立运行。
+    包含 v0.2 期望的所有占位符 + 三档 class + 闸门可扫描的元素。
+    """
     return r"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{domain}} · 领域速通</title>
+<title>{{domain_name}} · 领域速通</title>
 <style>
 :root { --fg:#1a1a1a; --bg:#fbfaf6; --accent:#7a1f1f; --muted:#666; --rule:#d8d3c4; }
 @media (prefers-color-scheme: dark) {
@@ -867,144 +822,75 @@ def default_template() -> str:
 }
 [data-theme="dark"] { --fg:#e8e4d8; --bg:#15140f; --accent:#c98a3a; --muted:#999; --rule:#3a382f; }
 * { box-sizing: border-box; }
-html, body { background: var(--bg); color: var(--fg); }
-body { font-family: "Songti SC", "STSong", "SimSun", "Noto Serif CJK SC", serif;
-  max-width: 820px; margin: 0 auto; padding: 2rem 1.2rem; line-height: 1.75; }
-h1, h2, h3 { font-weight: 600; letter-spacing: 0.02em; }
-h1 { font-size: 1.8rem; border-bottom: 2px solid var(--accent); padding-bottom: .4rem; }
-h2 { font-size: 1.3rem; margin-top: 2rem; color: var(--accent); }
-h3 { font-size: 1.1rem; margin-top: 1.4rem; }
-.thesis { font-size: 1.15rem; padding: .8rem 1rem; border-left: 3px solid var(--accent);
-  background: rgba(122,31,31,.04); margin: 1rem 0; }
-.tier-controls { margin: 1rem 0; }
-.tier-controls button { font-family: inherit; padding: .3rem .8rem; margin-right: .4rem;
-  background: var(--bg); color: var(--fg); border: 1px solid var(--rule); cursor: pointer; }
-.tier-controls button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-.tier-medium, .tier-deep { display: none; }
-body.show-medium .tier-medium, body.show-deep .tier-medium { display: block; }
-body.show-deep .tier-deep { display: block; }
-table { border-collapse: collapse; width: 100%; margin: .8rem 0; font-size: .95rem; }
-th, td { border: 1px solid var(--rule); padding: .4rem .6rem; text-align: left; }
-th { background: rgba(122,31,31,.06); }
-code, .jargon { font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
-  font-size: .9em; background: rgba(0,0,0,.04); padding: 0 .2em; border-radius: 2px; }
-.fact { padding: .3rem .6rem; border-left: 2px solid var(--accent); margin: .4rem 0;
-  background: rgba(0,0,0,.02); }
+body { background: var(--bg); color: var(--fg);
+  font-family: "Songti SC", "STSong", "SimSun", "Noto Serif CJK SC", serif;
+  max-width: 760px; margin: 0 auto; padding: 2rem 1.2rem; line-height: 1.8; }
+h1 { font-size: 2rem; }
+h2 { font-size: 1.4rem; margin-top: 2.5rem; color: var(--accent); border-bottom: 1px solid var(--rule); padding-bottom: .3rem; }
+.hero .subtitle { color: var(--muted); font-size: 1.05rem; }
+.hero .thesis-line { font-style: italic; padding: .6rem 0 .4rem; border-left: 3px solid var(--accent); padding-left: 1rem; margin: 1rem 0; }
+.hero .cutoff { color: var(--muted); font-size: .85rem; }
+sup a.fact-ref { color: var(--accent); text-decoration: none; font-size: .8em; }
+.mechanism { padding: .4rem .8rem; border-left: 2px solid var(--accent); background: rgba(122,31,31,.04); margin: 1rem 0; }
+blockquote.viewpoint { padding: .6rem 1rem; border-left: 3px solid var(--accent); margin: 1.2rem 0; }
+blockquote.viewpoint .counter { display: block; color: var(--muted); margin-top: .4rem; font-style: italic; }
+blockquote.viewpoint .counter::before { content: "但是 / "; color: var(--accent); font-weight: 600; font-style: normal; }
 .grade-A { color: #7a1f1f; font-weight: 600; }
 .grade-B { color: #c98a3a; font-weight: 600; }
 .grade-C { color: #5b6f8a; }
 .grade-D { color: #9a9a9a; }
+table.source-grading-table { border-collapse: collapse; margin: 1rem 0; }
+table.source-grading-table td, table.source-grading-table th { border: 1px solid var(--rule); padding: .3rem .6rem; }
 .muted { color: var(--muted); }
-.source-grading-table { max-width: 320px; }
-.players-table th { white-space: nowrap; }
-.disclaimer { border: 1px dashed var(--rule); padding: 1rem; margin: 2rem 0;
-  background: rgba(0,0,0,.02); font-size: .95rem; }
-.viewpoint { margin: 1rem 0; padding: .6rem 1rem; border-left: 3px solid var(--accent); }
-.counter { color: var(--muted); font-style: italic; margin-top: .3rem; }
-.counter::before { content: "反例 / "; color: var(--accent); font-style: normal; font-weight: 600; }
-@media print { @page { size: A4; margin: 1.6cm; } .tier-controls { display:none; } }
+.ai-disclaimer-footer { font-size: .85rem; color: var(--muted); border-top: 1px solid var(--rule); padding-top: 1rem; margin-top: 3rem; }
+@media print { @page { size: A4; margin: 1.6cm; } }
 </style>
 </head>
-<body class="show-deep">
-<header>
-  <h1>{{domain}} · 领域速通</h1>
-  <p class="muted">cutoff: {{cutoff_date}} · tier: {{tier}} · preset: {{preset}}</p>
-  <p class="thesis">{{thesis}}</p>
-  <div class="tier-controls" role="tablist">
-    <button data-tier="flash">闪研 30min</button>
-    <button data-tier="medium">精研 60min</button>
-    <button data-tier="deep" class="active">深研 90min</button>
-  </div>
+<body data-tier="{{tier}}">
+
+<header class="hero">
+  <h1>{{domain_name}}</h1>
+  {{#if subtitle}}<p class="subtitle">{{subtitle}}</p>{{/if}}
+  <p class="thesis-line">{{thesis_one_liner}}</p>
+  <p class="cutoff muted">cutoff {{cutoff_date}} · {{tier_label}}</p>
 </header>
 
-<section class="tier-flash">
-  <h2>骨架五件套</h2>
-  <h3>核心概念</h3>
-  <ul>{{#each skeleton.concepts}}<li><span class="jargon">{{this.term}}</span> — {{this.def}}</li>{{/each}}</ul>
-  <h3>玩家地图</h3>
-  {{{players_table_html}}}
-  <h3>时间轴</h3>
-  {{{timeline_svg}}}
-  <h3>矛盾结构</h3>
-  <ul>{{#each skeleton.tensions}}<li>{{this}}</li>{{/each}}</ul>
-  <h2>关键事实（最重要的几条）</h2>
-  {{#each facts}}<div class="fact" id="{{this.anchor}}">[<span class="grade-{{this.grade}}">{{this.grade}}</span>] {{this.text}} <span class="muted">— {{this.source}}</span></div>{{/each}}
-</section>
+<main>
+{{{chapters_html}}}
+</main>
 
-<section class="tier-medium">
-  <h2>机制层</h2>
-  {{#each mechanisms}}
-  <div class="mechanism" id="{{this.id}}" data-fact-refs="{{#each this.fact_refs}}{{this}},{{/each}}"><strong>{{this.text}}</strong>
-    <div class="muted">支撑事实：{{#each this.fact_anchors}}<a href="#{{this.anchor}}">{{this.label}}</a> {{/each}}</div>
-  </div>
-  {{/each}}
-  <h2>观点层</h2>
-  {{#each viewpoints}}
-  <div class="viewpoint" id="{{this.id}}">{{this.text}}
-    <div class="counter">{{this.counter_evidence}}</div>
-    <div class="muted">基于机制：{{#each this.mechanism_refs}}<a href="#{{this}}">{{this}}</a> {{/each}}</div>
-  </div>
-  {{/each}}
-  <h2>反身性元透镜</h2>
-  <p><strong>主流叙事：</strong>{{reflexivity.narrative}}</p>
-  <p><strong>自我证实链路：</strong>{{reflexivity.self_reinforce}}</p>
-  <p><strong>失效条件：</strong>{{reflexivity.failure_condition}}</p>
-  <h2>来源分级</h2>
-  {{{grade_pie_svg}}}
+<details id="sources-fold">
+  <summary>信息来源（{{fact_count}} 条 · 折叠）</summary>
+  <div class="grade-overview">{{{grade_pie_svg}}}</div>
   {{{source_grading_table_html}}}
-  <h2>行业认知误区与盲区</h2>
-  <h3>外部误读</h3>
-  <ul>{{#each misreadings}}<li>{{this}}</li>{{/each}}</ul>
-  <h3>局内人盲区</h3>
-  <ul>{{#each blind_spots}}<li>{{this}}</li>{{/each}}</ul>
-</section>
+  <h3>事实锚点完整列表</h3>
+  {{{facts_complete_list_html}}}
+  <h3>推荐人 / 账号 / 会议</h3>
+  {{{recommendations_html}}}
+</details>
 
-<section class="tier-deep">
-  <h2>结构层</h2>
-  <dl>{{#each structure_layer}}<dt>{{@key}}</dt><dd>{{this}}</dd>{{/each}}</dl>
-  <h2>范式层</h2>
-  <dl>{{#each paradigm_layer}}<dt>{{@key}}</dt><dd>{{this}}</dd>{{/each}}</dl>
-  <h2>跨领域同构</h2>
-  {{#each isomorphisms}}
-  <div><h3>对照：{{this.source}}</h3>
-    <p><strong>同构点：</strong>{{this.similarity}}</p>
-    <p><strong>反同构点（不能照搬）：</strong>{{this.anti_similarity}}</p>
-  </div>
-  {{/each}}
-  <h2>学习路径</h2>
-  <ol>{{#each skeleton.learning_path}}<li>{{this}}</li>{{/each}}</ol>
-  <h2>自检题</h2>
-  <ol>{{#each self_check_questions}}<li>{{this}}</li>{{/each}}</ol>
-</section>
+<details id="self-check-fold" class="tier-deep">
+  <summary>自检题 · 读完测自己（深研）</summary>
+  {{{self_check_html}}}
+</details>
 
-<section>
-  <h2>已知的未知（known unknowns）</h2>
-  <ul>{{#each known_unknowns}}<li>{{this}}</li>{{/each}}</ul>
-  <h2>推荐人 / 账号 / 社区</h2>
-  <ul>{{#each experts}}<li><strong>{{this.name}}</strong> — {{this.context}}</li>{{/each}}</ul>
-  <h2>来源清单</h2>
-  <ol>{{#each sources}}<li>{{this}}</li>{{/each}}</ol>
-</section>
+<details id="known-unknowns">
+  <summary>已知的未知 · 数据清单（折叠）</summary>
+  {{{known_unknowns_data_html}}}
+</details>
 
-<section id="ai-disclaimer" class="disclaimer">
-  <h2>AI 视角局限性 disclaimer</h2>
-  <p>模型 cutoff: {{cutoff_date}}。此后的进展不在掌握范围。</p>
-  <p>{{ai_disclaimer}}</p>
-  <p class="muted">AI 是主流叙事的载体——读完请去找上面的真人专家交叉验证。</p>
-</section>
+<footer id="ai-disclaimer" class="ai-disclaimer-footer">
+  <p>本页由 AI 模型基于训练数据生成，cutoff <strong>{{cutoff_date}}</strong>。
+  cutoff 之后的事件、融资、人事变动一概不掌握；AI 是主流叙事的载体——所有"观点"判断都是可被打脸的假设，请用上方"推荐人/会议"去交叉验证。
+  生成于 {{generation_date}}。</p>
+</footer>
 
 <script>
 (function(){
-  var body = document.body;
-  var btns = document.querySelectorAll('.tier-controls button');
-  function setTier(t) {
-    body.classList.remove('show-medium','show-deep');
-    if (t === 'medium') body.classList.add('show-medium');
-    if (t === 'deep') body.classList.add('show-medium','show-deep');
-    btns.forEach(function(b){ b.classList.toggle('active', b.dataset.tier === t); });
-  }
-  btns.forEach(function(b){ b.addEventListener('click', function(){ setTier(b.dataset.tier); }); });
-  setTier('{{tier}}');
+  var btns = document.querySelectorAll('.tier-btn');
+  btns.forEach(function(b){ b.addEventListener('click', function(){
+    document.body.dataset.tier = b.dataset.tier;
+  });});
 })();
 </script>
 </body>
@@ -1014,12 +900,18 @@ code, .jargon { font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monos
 
 # ---------- 主流程 ----------
 
+# HTML 注释剥离正则（在渲染前去除，避免注释里的占位符也被模板引擎展开/二次注入大段 HTML）
+_HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
+
+
 def render(data: Dict[str, Any], template: str) -> str:
-    return render_template(template, data)
+    # 先剥离 HTML 注释——避免模板里的"用法示例"注释被引擎展开导致 chapters 等
+    # 大段 HTML 被重复注入两次（v0.2 模板里有这种 inline 注释示意）。
+    template_clean = _HTML_COMMENT_RE.sub("", template)
+    return render_template(template_clean, data)
 
 
 def word_count(text: str) -> int:
-    # 粗略估算：去 HTML 标签后，中文按字符计、英文按词计
     plain = re.sub(r"<[^>]+>", " ", text)
     plain = re.sub(r"\s+", " ", plain).strip()
     cn = len(re.findall(r"[一-鿿]", plain))
@@ -1073,12 +965,25 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     total_g = sum(gc.values()) or 1
     pcts = " ".join(f"{g}:{gc[g]*100/total_g:.0f}%" for g in ("A", "B", "C", "D"))
     wc = word_count(out)
+    n_chapters = len(data.get("chapters", []))
+    n_facts = len(data["facts"])
+    # 从 chapters 内的 narrative_html 数 .mechanism / .viewpoint 节点
+    chapters_blob = "\n".join(
+        ch.get("narrative_html", "") if isinstance(ch, dict) else ""
+        for ch in data.get("chapters", [])
+    )
+    if not chapters_blob and not data.get("_schema_v02"):
+        # 旧 schema fallback：直接从 mechanisms/viewpoints 数
+        n_mech = len(data.get("mechanisms", []))
+        n_view = len(data.get("viewpoints", []))
+    else:
+        n_mech = len(re.findall(r'class\s*=\s*["\'][^"\']*\bmechanism\b', chapters_blob))
+        n_view = len(re.findall(r'class\s*=\s*["\'][^"\']*\bviewpoint\b', chapters_blob))
     print(
         f"[render.py] OK → {out_path}\n"
-        f"  facts={len(data['facts'])} mechanisms={len(data['mechanisms'])} "
-        f"viewpoints={len(data['viewpoints'])}\n"
-        f"  grade_pct: {pcts}\n"
-        f"  word_count≈{wc}"
+        f"  facts={n_facts} mechanisms={n_mech} viewpoints={n_view} chapters={n_chapters}\n"
+        f"  tier={data.get('tier','medium')}  word_count≈{wc}\n"
+        f"  grade_pct: {pcts}"
     )
     return 0
 

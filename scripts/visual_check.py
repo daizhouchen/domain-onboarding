@@ -129,14 +129,24 @@ class Report:
 # ---------- 检查项 ----------
 
 def _detect_tier(html: str) -> str:
-    """从 HTML 中识别 tier 等级（默认 medium）。"""
+    """从 HTML 中识别 tier 等级（默认 medium）。
+    优先匹配 <body data-tier="..."> 上的实际属性，避免被 CSS 选择器
+    body[data-tier="flash"] 这种规则干扰。
+    """
+    m = re.search(
+        r'<body\b[^>]*\bdata-tier\s*=\s*["\'](flash|medium|deep)["\']',
+        html,
+        re.IGNORECASE | re.DOTALL,
+    )
+    if m:
+        return m.group(1).lower()
     m = re.search(
         r'data-tier\s*=\s*["\'](flash|medium|deep)["\']', html, re.IGNORECASE
     )
     if m:
         return m.group(1).lower()
     m = re.search(
-        r'tier\s*[:=]\s*["\']?(flash|medium|deep)\b', html, re.IGNORECASE
+        r'\btier\s*[:=]\s*["\']?(flash|medium|deep)\b', html, re.IGNORECASE
     )
     if m:
         return m.group(1).lower()

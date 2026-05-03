@@ -113,11 +113,64 @@ description: 让用户在 30 / 60 / 90 分钟内从 0 到 1 拿下一个领域�
 
 每个机制层陈述 ≥3 个事实锚点支持。每个观点层陈述必须给"反例事实"或"证伪条件"。
 
-### Step 5. 渲染 + 双闸门质量检查
+### Step 5. 渲染 + 双闸门质量检查（v0.2 渲染规则）
 
-写中间产物 `domain.json`，然后用 `scripts/render.py` 生成单文件 HTML。最后跑两道闸门：
-- **内容闸**：`scripts/quality_check.py`——扫学究腔黑名单、事实密度、单边叙事、AI 自反性 disclaimer 是否存在
-- **视觉闸**：`scripts/visual_check.py`——三档差异化比例（精研 ≥1.3× 闪研、深研 ≥1.5× 精研）、SVG 装饰合规、暗色模式可切
+写中间产物 `domain.json`，然后用 `scripts/render.py` 生成单文件 HTML。最后跑两道闸门。
+
+#### 5.1 v0.2 渲染规则：呈现是叙事，结构是骨架，扫描器仍能验证
+
+v0.1 把"质量闸门要扫的结构"和"读者要读的结构"画成同一张图——读者看到 H2 是"事实层 / 机制层 / 观点层 / 反身性 / 结构层 / 范式层"，等于把分析框架原封不动糊脸。**v0.2 改：H2 是叙事章节标题，事实/机制/观点/反身性/结构/范式/同构这些"分析框架"内化进 narrative_html 里**——读者看不到框架名，闸门仍然能从 class / id / data 属性扫到。
+
+**chapters[].narrative_html 是已织入脚注/机制/观点的连贯 HTML 字符串**——不再分开传 facts / mechanisms / viewpoints 数据再让 render.py 拼。叙事段落里直接埋：
+- `<sup><a id="fact-N" class="fact-ref" href="#fact-data-N">[N]</a></sup>` 朴素方括号上标脚注
+- `<p class="mechanism" data-fact-refs="f1,f3,f5">机制段落</p>` 自然段落形态的机制陈述（左侧朱砂细线视觉提示，但**不写"机制层"**字样）
+- `<blockquote class="viewpoint">观点正文<span class="counter">但是…/反过来…/如果 X 则 Y</span></blockquote>` 引文形态的观点 + 反例（**不写"观点层"**字样）
+
+#### 5.2 H1 / H2 / H3 禁忌词清单（quality_check 会扫，命中即返工）
+
+下列词**不允许**作为标题文字（H1/H2/H3）出现——它们是分析框架名，应该内化进叙事，不应糊脸：
+
+```
+事实层、机制层、观点层、三层证据链
+反身性、结构层、范式层
+跨领域同构、跨领域类比
+骨架·一、骨架·二、骨架·三、骨架·四、骨架·五
+核心概念图、玩家地图、时间轴、矛盾结构、学习路径
+认知误区、行业误区
+```
+
+白名单豁免：references 链接文字、tooltip / data 属性、code 块内、折叠区 summary（如"自检题"等用户友好词）。
+
+H2 必须是 v0.2 spec 的 10 章弧线叙事化标题（如"这是什么 · 为什么现在值得花一小时"、"它怎么走到今天"、"主流叙事 · 它如何自我强化又如何崩"），不是分析框架名。
+
+#### 5.3 渲染步骤
+
+```
+domain.json
+   │
+   ├─ chapters[] (narrative_html 已织入脚注/机制/观点)
+   ├─ facts[]   (id / text / source / grade — 用于底部完整清单)
+   ├─ experts[] (用于推荐折叠区)
+   ├─ known_unknowns_data[] (旁路 ul · 闸门数据源)
+   └─ ai_disclaimer / cutoff_date / thesis_one_liner / subtitle
+   │
+   ▼
+scripts/render.py
+   │
+   ├─ 把 chapters[] 渲染为 <section class="chapter tier-{level}" id="chap-id"><h2>title</h2>{narrative_html}</section>
+   ├─ 把 facts[] 渲染为底部 sources-fold 内的 ol#facts-complete + source-grading-table
+   ├─ 把 experts[] 渲染为底部 experts-fold 内的 ul
+   ├─ 把 known_unknowns_data[] 渲染为底部 unknowns-data-fold 内的 ul（id="known-unknowns" 在 details 上）
+   └─ 嵌入 assets/html-template.html 的 {{{...}}} 占位符
+   │
+   ▼
+<domain>.html （单文件）
+```
+
+#### 5.4 双闸门验证
+
+- **内容闸**：`scripts/quality_check.py`——扫学究腔黑名单、事实密度（按档位 ≥15/35/70）、机制陈述配 `data-fact-refs` ≥3、观点配 `.counter` 反例、AI disclaimer `id="ai-disclaimer"` 存在、**H1/H2/H3 不出现 5.2 节禁忌词**、推荐 `<li>` ≥3、known-unknowns 区段下 `<li>` ≥N
+- **视觉闸**：`scripts/visual_check.py`——三档差异化字数比例（精研 ≥1.3× 闪研、深研 ≥1.5× 精研）、`.tier-flash / .tier-medium / .tier-deep` 节点存在、`.source-grading-table` 在底部折叠区可达、零外链、SVG 装饰合规、暗色模式可切
 
 任一闸门不过 → 返工，不出 HTML。
 
@@ -145,21 +198,33 @@ HTML 用同一文档 + CSS class 切换，用户点 `⚡ 📖 🔬` 按钮升档
 
 ## 强制必出元素清单（缺一项 → 返工）
 
-不论档位，**HTML 末尾必须包含**：
-- [ ] AI 视角局限性 disclaimer（cutoff date + 模型作为主流叙事载体的免责）
-- [ ] 已知的未知清单（≥5 条 known unknowns，详见 `references/known-unknowns.md`）
-- [ ] 推荐人/账号/会议/社区 ≥3 个（用户去人肉验证）
-- [ ] 来源分级表（A/B/C/D 占比 + 主要 A/B 级源列表）
+v0.2 改用**叙事章节为单位**的清单——分析框架（事实层/机制层/观点层/反身性/结构层/范式层/同构）已内化进各章 narrative_html，不再以独立 H2 出现。
 
-精研档及以上额外要求：
-- [ ] 反身性章节（主流叙事 + 失效条件）
-- [ ] 行业认知误区（外部误解 ≥3）+ 局内人盲区 ≥2
+### 不论档位，HTML 末尾必须包含（弱化版尾跋 + 折叠区）
 
-深研档额外要求：
-- [ ] 结构层提问全部回答
-- [ ] 范式层提问全部回答
-- [ ] 跨领域同构案例 ≥2 个
-- [ ] 自检题 ≥10 道（让用户读完测自己）
+- [ ] **AI 边界提醒**（尾跋小字 · `<footer class="postscript" id="ai-disclaimer">`）：cutoff date + 100 字 disclaimer（"AI 是主流叙事载体，本页判断都是可被打脸的假设"），视觉权重低，不抢戏
+- [ ] **信息来源折叠区**（`<details class="sources-fold">`）：A/B/C/D 等级表 + 完整事实清单（每条 `id="fact-data-N"` 锚点存活，供脚注 hover/click 跳转）
+- [ ] **推荐人 / 账号 / 社区**（`<details class="experts-fold">`）：≥3 条 `<li>`（用户去人肉验证）
+- [ ] **未知边界数据**（`<details class="unknowns-data-fold" id="known-unknowns">`）：旁路 `<ul>` ≥5 条 `<li>`（闸门数据源；正文叙事化的"我（AI）不知道的几件事"在第十章）
+
+### 章节弧线必含（按 tier）
+
+- **闪研 ⚡**：第 1-4 章
+  - [ ] 一、这是什么 · 为什么现在值得花一小时
+  - [ ] 二、它怎么走到今天
+  - [ ] 三、谁在场上 · 谁在赌什么
+  - [ ] 四、圈内人才懂的几件事
+- **精研 📖**：闪研全部 + 第 5、第 8 章
+  - [ ] 五、表面之下 · 几条不可变的约束
+  - [ ] 八、主流叙事 · 它如何自我强化又如何崩
+- **深研 🔬**：全部 10 章 + 自检题折叠展开
+  - [ ] 六、这是什么时期 · 异端正从边缘浮现
+  - [ ] 七、别处的故事 · 镜照本地（叙事中含 ≥2 个跨领域同构案例 + 同构点 / 反同构点叙事化表述）
+  - [ ] 九、接下来你应该读什么 · 信谁（必读 ≥3 / 必跟人 ≥3 / 关键社区 ≥1）
+  - [ ] 十、我（AI）不知道的几件事
+  - [ ] 自检题 ≥10 道（嵌在 `<details class="self-check-fold">` 折叠区，仅深研档可见）
+
+> v0.1 里"反身性章节 / 行业认知误区 / 结构层提问全部回答 / 跨领域同构 ≥2"等以分析框架命名的清单条目已删除——这些内容现在以**章节叙事**形式呈现，闸门通过 class/id/data-attr 验证而非 H2 标题文本验证。
 
 ## 视觉风格
 

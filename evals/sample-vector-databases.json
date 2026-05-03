@@ -1,0 +1,360 @@
+{
+  "domain": "向量数据库",
+  "domain_slug": "vector-databases",
+  "tier": "medium",
+  "preset": "tech",
+  "cutoff_date": "2025-Q1",
+  "subtitle": "RAG 基建赛道 · 算法白菜化 · 决胜在工程与生态",
+  "thesis_one_liner": "向量数据库不是技术问题，是工程与生态问题；纯向量库面临 pgvector 的长期蚕食，胜负手在 RAG 工作流的端到端体验。",
+  "chapters": [
+    {
+      "id": "what-and-why",
+      "title": "这是什么 · 为什么现在值得花一小时",
+      "narrative_html": "<p>假设你下周要去见一家做向量数据库的公司，或者老板把一份'是否要把 RAG 平台从 pgvector 切到 Pinecone'的评审表丢给你，又或者你只是在 Hugging Face 看到一篇博客在吵 HNSW 和 IVF——这一小时是给你建一张地图的：搞清楚谁在场上、他们在赌什么、技术约束的天花板在哪、以及主流叙事什么时候会崩。</p><p>读完后你应该能干三件事。第一，听懂会议室里的黑话——'recall 掉到 0.92'、'要不要走 pre-filter'、'我们这边 metadata cardinality 太高'——而不只是点头。第二，判断一个供应商讲故事时的位置：他在卖算法、卖 SaaS、还是卖端到端 RAG 工作流？三种打法的命门完全不同。第三，看清楚一条更深的脉络——这个赛道的算法红利已经吃完，未来三年的胜负不在 ANN 召回率多 0.5%，而在嵌入模型的迭代节奏、长上下文模型的替代威胁、以及 pgvector 这种'够用就行'的逐步蚕食。</p><p>一句话定调<sup><a id=\"fact-1\" class=\"fact-ref\" href=\"#fact-data-1\">[1]</a></sup>：向量数据库这个品类正在从'独立赛道'退化为'通用数据库的一个能力'，但 RAG 工作流本身正在涨——这意味着头部玩家要么向上走变成 RAG 平台（Pinecone 路线），要么向下走变成 Postgres 插件（pgvector 路线），中间地带最危险。这一小时不会让你写出 HNSW 代码，但能让你下次开会听到'我们在评估 pgvector 还是 Pinecone'时，立刻知道对方的真实约束是什么、应该追问什么、以及哪些选项他可能没考虑到。</p>"
+    },
+    {
+      "id": "history",
+      "title": "它怎么走到今天",
+      "narrative_html": "<p>这个故事真正的起点不在 2023 年，而在 2017 年的 Facebook AI Research。那年三月，Hervé Jégou 团队把内部用了多年的相似度搜索库 FAISS 开源<sup><a id=\"fact-2\" class=\"fact-ref\" href=\"#fact-data-2\">[2]</a></sup>。这件事在当年没几个人在意——FAISS 是给图片去重和推荐系统用的，CPU/GPU 双版本、工业级实现、但接口冷冰冰，是个 C++ 库不是数据库。它做的事情后来被叫做 ANN（近似最近邻）：放弃精确解，用 IVF（倒排文件）或图索引把十亿级向量的相似度查询从分钟级压到毫秒级。</p><p>同一时期，俄罗斯研究员 Yury Malkov 已经在搞另一条路。他 2016 年的预印本提出 HNSW（分层可导航小世界图），2018 年正式发表<sup><a id=\"fact-3\" class=\"fact-ref\" href=\"#fact-data-3\">[3]</a></sup>。HNSW 和 IVF 的差别后来变成圈内最常见的工程选择题：图索引召回率高、内存吃紧；倒排索引省内存、对参数敏感。这两个算法此后七八年里几乎没有被颠覆——这就是'算法白菜化'的起点：核心问题被解决，只剩工程化。</p><p>2019 年是品类化的关键节点。中国团队 Zilliz 把 FAISS 和自研的 Knowhere 引擎封装成了一个真正意义上的'向量数据库'——Milvus，捐给 LF AI 基金会<sup><a id=\"fact-4\" class=\"fact-ref\" href=\"#fact-data-4\">[4]</a></sup>。Milvus 干的事情就是把 FAISS 这种库塞进一个分布式存储、加上 SQL-ish 查询接口、加上元数据过滤，做成一个可以独立运维的服务。这是从'算法'到'品类'的关键一跃。</p><p>真正的拐点来自一家纽约公司。Pinecone 由 Edo Liberty 创立，他来自 AWS SageMaker 团队，更早之前在 Yahoo Research 做相似度搜索研究——他赌的是一件当时还没人敢赌的事：未来会有一种新型应用需要海量向量搜索作为基础设施。2021 年 Pinecone 完成 1000 万美元 A 轮<sup><a id=\"fact-5\" class=\"fact-ref\" href=\"#fact-data-5\">[5]</a></sup>，那时 GPT-3 刚出来一年，'RAG' 这个词在主流视野里还不存在。Pinecone 的判断后来被证明早了至少 18 个月。</p><p>2022 年底 ChatGPT 引爆，叙事在 2023 年春天集体翻车——不是向上翻，是向有利于 Pinecone 的方向翻。'大模型 + 私有知识库'的需求一夜之间冒出来，所有 SaaS 公司都在评估接 OpenAI API 的方案，而 LangChain 这种胶水库把 'embedding → vector store → LLM' 的三段式工作流打成模板。Pinecone 2023 年 4 月拿到 1 亿美元 B 轮，估值 7.5 亿美元<sup><a id=\"fact-6\" class=\"fact-ref\" href=\"#fact-data-6\">[6]</a></sup>。Weaviate、Qdrant、Chroma 同期相继融资<sup><a id=\"fact-7\" class=\"fact-ref\" href=\"#fact-data-7\">[7]</a></sup>。这是赛道的高光时刻。</p><p class=\"mechanism\" data-fact-refs=\"f2,f3,f4,f5\">机制上看，2017-2023 这六年是'技术堆栈把品类托出来'的标准范式：底层算法论文化（HNSW、FAISS）→ 工程化封装（Milvus 把库变服务）→ 商业化打包（Pinecone 把服务变 SaaS）→ 上游应用爆发（LLM 应用层引爆需求）。每一层都需要前一层成熟才能起来，而每一层都把前一层的差异化空间压缩——到 2023 年底，'谁的 ANN 算法更好'已经不是有意义的问题。</p><p>2023 年下半年开始，故事悄悄出现裂缝。一个叫 pgvector 的 Postgres 扩展原本默默无闻，2023 年 9 月发布的 0.5 版本加入了 HNSW 索引<sup><a id=\"fact-8\" class=\"fact-ref\" href=\"#fact-data-8\">[8]</a></sup>。两个月后，AWS 在 Aurora PostgreSQL 上原生支持 pgvector<sup><a id=\"fact-9\" class=\"fact-ref\" href=\"#fact-data-9\">[9]</a></sup>。所有原本用 Postgres 的企业突然发现：他们不需要再为'向量这一列'引入一个新数据库。这个事件在硅谷的 Hacker News 上引发激烈争论，圈内人开始用 'pgvector is good enough' 这个梗。</p><p>2024 年范式继续演化。Pinecone 一月推出 Serverless 版本，把存算分离做成按用量计费<sup><a id=\"fact-10\" class=\"fact-ref\" href=\"#fact-data-10\">[10]</a></sup>，这是一次主动求变——承认企业不愿意为闲置的 pod 付钱。OpenAI 同月发布 text-embedding-3 系列<sup><a id=\"fact-11\" class=\"fact-ref\" href=\"#fact-data-11\">[11]</a></sup>，把嵌入模型的质量再推一档。Anthropic 和 Google 把上下文窗口做到 100 万 token，主流叙事第一次出现裂缝——如果模型能直接吞下整本 PDF，为什么还要先把它切成块灌进向量库？这就是当下你站的位置：一个赛道正在从'独立品类'回归到'数据库的一个能力'，同时上游叙事本身正在被长上下文模型挑战。</p>"
+    },
+    {
+      "id": "players",
+      "title": "谁在场上 · 谁在赌什么",
+      "narrative_html": "<p>这个赛道的玩家可以按'赌什么'分成五种性格，每种性格都有自己的命门。</p><p><strong>Pinecone</strong> 赌的是'纯托管 SaaS + 上层 RAG 工作流'。他们不开源，不卖盒子，目标客户是'用 OpenAI API 的成长型公司'。优势是开发者体验做得最干净——三行 SDK 上手——以及在 RAG 这个细分场景的早期心智占领。命门是估值已经吃满预期（2023 年 7.5 亿估值<sup><a id=\"fact-12\" class=\"fact-ref\" href=\"#fact-data-12\">[12]</a></sup>），下一轮要兑现就必须把 ARR 推到 2 亿美元以上，而上有 OpenAI 自己做的 Assistants API 在挤压、下有 pgvector 在抽走 'just enough' 这部分客户。Pinecone 2024 年的 Serverless 转身就是被这种夹击逼出来的。</p><p><strong>Weaviate</strong> 赌的是'开源 + 模块化 + 多模态'。荷兰团队 SeMI Technologies 起家，最早用 GraphQL 做查询接口（这个选择有点小众但赢得一批 graph-native 的客户），后来主推 'modules' 体系——把嵌入模型、reranker、生成模型都做成可插拔模块。2023 年 4 月拿到 5000 万美元 B 轮<sup><a id=\"fact-13\" class=\"fact-ref\" href=\"#fact-data-13\">[13]</a></sup>。命门是开源策略让他们必须靠托管服务变现，而托管市场又被 Pinecone 和云厂商两头挤。</p><p><strong>Milvus / Zilliz</strong> 赌的是'真正的分布式向量库 + 跨地域部署'。这家来自中国的团队是赛道里少有的'CS 出身、做了真正的存算分离架构'的玩家。Milvus 2.x 把存储、查询、索引、协调拆成四种节点，可以横向扩展到十亿向量级别<sup><a id=\"fact-14\" class=\"fact-ref\" href=\"#fact-data-14\">[14]</a></sup>。商业化主体 Zilliz 2022 年完成 6000 万美元 B 轮<sup><a id=\"fact-15\" class=\"fact-ref\" href=\"#fact-data-15\">[15]</a></sup>，把美国团队搬到湾区，但根在国内。命门是地缘——Milvus 在中国云厂商生态里被腾讯、阿里、华为各自的向量服务夹击，在美国市场又面临'中国背景'的隐形阻力。</p><p><strong>Qdrant</strong> 赌的是'Rust 性能 + 开发者口碑 + 自托管偏好'。柏林团队，技术品味好，文档清爽，benchmark 数据公开透明<sup><a id=\"fact-16\" class=\"fact-ref\" href=\"#fact-data-16\">[16]</a></sup>。在'我要自己装一个向量库到 K8s 上'的工程师群体里口碑最好。命门是规模——他们 2024 年的 ARR 据传仍在数千万美元级别<sup><a id=\"fact-17\" class=\"fact-ref\" href=\"#fact-data-17\">[17]</a></sup>，要在 Pinecone 和 pgvector 中间挤出位置不容易。</p><p><strong>pgvector</strong> 不是一家公司，是一个由 Andrew Kane 个人维护的 Postgres 扩展，但它是这个赛道里最大的黑马。它赌的不是'我的算法更好'，而是'用户已经在 Postgres 上了'。这个赌注大到难以反驳——根据 DB-Engines 的趋势，Postgres 是过去十年增长最快的关系数据库<sup><a id=\"fact-18\" class=\"fact-ref\" href=\"#fact-data-18\">[18]</a></sup>。AWS、Supabase、Neon、Crunchy Data 全部把 pgvector 作为默认能力。它的命门是工程极限——pgvector 在 1 亿向量以下相对成熟，但在 10 亿+ 向量、高并发写入、复杂过滤组合查询的场景下，工程边界还没有充分验证。</p><p class=\"mechanism\" data-fact-refs=\"f8,f9,f18\">机制上看，pgvector 的崛起不是技术胜利，而是发行渠道胜利：每个云厂商都已经卖 Postgres，加 pgvector 这个能力等于零成本拿到一块新蛋糕；客户不需要新建运维流程、新签 SaaS 合同、新过安全评审——'够用就行'在企业 IT 里几乎总是赢家。</p><p><blockquote class=\"viewpoint\">独立品类的向量数据库未来三年会被压成两类：一类是 Pinecone 这种向上变成 RAG 平台的 SaaS，另一类是 Milvus 这种以海量场景为壁垒的开源基础设施；中间地带的纯向量库公司最危险。<span class=\"counter\">但是反过来，如果嵌入模型的迭代速度继续加快（比如新一代模型不向后兼容），客户就会强烈倾向于'专门处理向量'的服务来吸收迁移成本——这种场景下纯向量库反而有结构性差异化。</span></blockquote></p><p>还有一条暗线值得提一句：Vespa（Yahoo 老员工创立）和 Elasticsearch（Lucene 系）都在悄悄把向量检索做进自己的搜索引擎里，他们赌的是'向量+关键词混合检索'才是更普遍的需求<sup><a id=\"fact-19\" class=\"fact-ref\" href=\"#fact-data-19\">[19]</a></sup>。这条线没拿到太多关注，但在企业搜索这个细分赛道里非常硬。再有一条更暗的线是数据仓库厂商：Snowflake 2024 年把 Cortex Search 等向量能力做进自家平台<sup><a id=\"fact-36\" class=\"fact-ref\" href=\"#fact-data-36\">[36]</a></sup>，Databricks 在向量索引和 RAG 工作流上也持续投入——这些公司不会单独卖向量库，但他们把'数据已经在我这里了'变成默认入口。</p>"
+    },
+    {
+      "id": "insider",
+      "title": "圈内人才懂的几件事",
+      "narrative_html": "<p>这一节是给你下周开会用的，每条都来自圈内的实际工作经验，外面的报告里很少写。</p><p><strong>1. 'Recall@K' 不是越高越好。</strong>圈外人看 benchmark 喜欢比谁的 recall@10 高，但圈内人都知道：recall 从 0.95 推到 0.99 的延迟代价可能翻三倍，而上游的嵌入模型本身就有 5%-10% 的语义偏差——你在召回率上抠的小数点很可能完全被嵌入模型自己的噪声吃掉。</p><p><strong>2. 'metadata filter' 是真壁垒。</strong>外面看的都是 ANN 算法，圈内的痛点是过滤——'我要查所有 user_id=42 且 created_at 在最近 7 天的相似文档'。这种 pre-filter vs post-filter 的工程取舍才是各家厂商真正在卷的地方。Pinecone 的 metadata filtering、Weaviate 的 where 子句、Milvus 的 partition key 各有各的取舍，没有银弹。</p><p><strong>3. '混合检索'比纯向量好用。</strong>圈外人以为 LLM 时代关键词检索过时了，圈内人在生产里几乎都跑混合检索——BM25 + 向量，再用 reciprocal rank fusion 合并<sup><a id=\"fact-20\" class=\"fact-ref\" href=\"#fact-data-20\">[20]</a></sup>。原因是嵌入模型对专有名词、ID、代码片段的处理远差于关键词。</p><p><strong>4. '嵌入模型的版本锁'比想象中严重。</strong>切换嵌入模型意味着重新嵌入全部数据——一个 1 亿条文档的库重嵌一遍可能要几千美元、几天时间，期间还要做双写。所以企业一旦上了 OpenAI 的 ada-002，迁到 text-embedding-3 都不情愿。这一条让 Cohere、Voyage、Jina 等独立嵌入服务商有了存在空间。</p><p><strong>5. 'Reranker' 才是 RAG 真正的精度引擎。</strong>圈外人以为提升 RAG 质量靠换更好的向量库，圈内人都在加 cross-encoder reranker——召回阶段拿 top 100，让 reranker 重新排出 top 10。Cohere Rerank 和 BAAI 的 bge-reranker 是事实标准<sup><a id=\"fact-21\" class=\"fact-ref\" href=\"#fact-data-21\">[21]</a></sup>。</p><p><strong>6. 'Chunking 策略'吃掉 50% 的 RAG 质量问题。</strong>把长文档切成多大、切的边界落在哪里，比向量库选哪家影响大得多。圈内有人专门做 chunking——按句子、按段落、按语义边界、按递归分块，没有标准答案。</p><p><strong>7. '黑话翻译表'。</strong>'IVF_SQ8' 圈外人会查很久，圈内人秒懂是 'IVF 倒排索引 + Scalar Quantization 8-bit 压缩'。'recall 99 / latency p99 50ms'是工程团队的简历级数字。'cardinality boom' 指的是 metadata filter 字段的取值过多导致索引性能崩溃。'cold start' 指 Serverless 模式下首次查询要把索引从对象存储拉回来导致延迟飙升。</p><p><strong>8. '全托管 vs 自托管'的真实账本。</strong>Pinecone 一个 p2.x1 pod 月成本约 70 美元<sup><a id=\"fact-22\" class=\"fact-ref\" href=\"#fact-data-22\">[22]</a></sup>，存几十万条向量还可以；上千万条的话每月几千美元很正常，企业级团队用到一定规模就开始算自托管 Qdrant/Milvus 的成本——通常在 1000 万向量这个量级是分水岭。</p><p><strong>9. 'GPU 索引构建'是被低估的工程加速。</strong>FAISS 的 GPU 版本可以把 1 亿向量的索引构建从小时级压到分钟级，但很多向量库（包括 Pinecone）都不暴露这个能力，因为 GPU 节点贵且管理复杂。圈内做超大规模索引的会自己用 cuVS（NVIDIA 的库）或者 RAFT 跑离线构建。</p><p><strong>10. 'Embedding drift' 没人愿意谈。</strong>用户搜索意图分布会随时间变化，新文档的语义分布和老文档不一致，向量索引并不会自动适应这种漂移——监控 embedding drift 的工具几乎没有商业化产品，是一片真空。</p><p><strong>11. '基准测试'要小心读。</strong>VectorDBBench 是 Zilliz 维护的，ANN-Benchmarks 由学术社区维护，各家供应商自己发的 benchmark 一律带利益冲突。圈内人读 benchmark 的方式是：先看用什么数据集（SIFT、GIST、GloVe 都各有偏向）、再看是否包含 metadata filter 场景（绝大多数 bench 不包含，但生产里几乎一定要用）、最后看延迟分位数（P50 漂亮的不一定 P99 漂亮）。</p>"
+    },
+    {
+      "id": "structural",
+      "title": "表面之下 · 几条不可变的约束",
+      "narrative_html": "<p>这个赛道为什么必须长成现在这样？最深的约束有四条，每一条都是在挑战物理学和组合数学。</p><p><strong>第一条：维度灾难是真的。</strong>当向量维度超过几十维之后，欧几里得距离的'区分度'急剧下降——所有点之间的距离都开始接近平均值<sup><a id=\"fact-23\" class=\"fact-ref\" href=\"#fact-data-23\">[23]</a></sup>。这不是工程问题，是几何事实。OpenAI 的 text-embedding-3-large 是 3072 维，主流嵌入大多在 768-1536 维区间，全部落在维度灾难区。这就是为什么纯精确解搜索（Brute Force）在大规模数据上完全没法用，必须走近似——所有 ANN 算法本质都在做同一件事：用图结构或聚类来'欺骗'高维空间，找到大概率的邻居而不是绝对邻居。</p><p><strong>第二条：内存与磁盘的取舍是死结。</strong>HNSW 的图结构必须放在内存里才能快——一个 10 亿 768 维 float32 向量加图开销大概要 4 TB 内存<sup><a id=\"fact-24\" class=\"fact-ref\" href=\"#fact-data-24\">[24]</a></sup>。这个数字直接决定了向量库的成本结构。各家应对的方式不同：Milvus 把索引分片到不同节点；DiskANN（微软研究院）走 SSD 索引<sup><a id=\"fact-25\" class=\"fact-ref\" href=\"#fact-data-25\">[25]</a></sup>，牺牲一点延迟换十倍存储成本下降；量化（PQ、SQ）可以把内存压到 1/8 但召回率下降。没有方案能同时拿到'低延迟 + 大规模 + 高召回 + 低成本'，这个四难是结构性的。</p><p><strong>第三条：嵌入模型与索引耦合。</strong>向量库不是中立的存储——它存的是某个具体嵌入模型的输出。模型升级（OpenAI 从 ada-002 到 text-embedding-3）需要重嵌全部数据。这种耦合让向量库从一开始就不可能像 MySQL 那样'装一次用十年'，它必须接受'上游模型在迭代、我也要跟着重建'的命运。这条约束让向量库永远不可能是基础设施，只能是工作流的一部分。</p><p class=\"mechanism\" data-fact-refs=\"f23,f24,f25\">机制上看，这三条物理-工程约束合起来产生了一个推论：向量库的护城河不在算法（论文一公开就被复制），不在性能（基准测试在 ANN-Benchmarks 上是公开的），而在'承接嵌入模型迭代、海量数据迁移、复杂过滤查询'的工程能力——这是为什么 Milvus 的分布式架构和 Pinecone 的 Serverless 是真正稀缺的，而'我们的算法快 10%'是几乎没有意义的差异化。</p><p><strong>第四条：一致性 vs 可用性的 CAP 取舍。</strong>向量库本质是分布式系统，写入新向量后多久能被搜索到（freshness vs latency）是核心权衡。Pinecone 选了最终一致——批量写入后大约几秒到几十秒可见<sup><a id=\"fact-26\" class=\"fact-ref\" href=\"#fact-data-26\">[26]</a></sup>。这对'用户上传文档立即问答'的 RAG 场景就是个糟糕的体验。Milvus 的 GrowingSegment 设计试图缩短这个窗口但代价是查询性能下降。pgvector 的优势恰恰是它继承了 Postgres 的事务语义——写入即可见，但代价是大规模索引重建会拖死主表。</p><p><blockquote class=\"viewpoint\">向量数据库不可能像 MySQL 那样在十年里保持稳定的接口和数据格式——它必须永远是上游嵌入模型生态的'寄生品种'。<span class=\"counter\">如果某种'通用嵌入空间'的开源标准被建立（类似图像领域的 CLIP 嵌入空间被广泛复用），向量库可能会摆脱这种寄生属性，变成真正的基础设施层。这个标准目前不存在。</span></blockquote></p>"
+    },
+    {
+      "id": "paradigm",
+      "title": "这是什么时期 · 异端正从边缘浮现",
+      "narrative_html": "<p>我们现在站在一个'主流叙事还没崩、但异端已经从三个方向浮现'的时刻。理解这个时刻最好的办法是先把主流叙事说清楚。</p><p>主流叙事是这样的：大模型不掌握你的私有知识，所以你需要把私有知识切块、嵌入、存进向量库；用户提问时把问题嵌入、做相似度搜索、把 top-k 块塞进 prompt——这就是 RAG。这个范式 2023 年由 LangChain 等胶水库标准化，2024 年成为企业 AI 应用的事实模板。所有向量库的估值都建立在'RAG 是 LLM 落地必经之路'这个假设上。</p><p>但异端正在从三个方向浮现。</p><p><strong>异端一：长上下文模型。</strong>Anthropic Claude 把上下文做到 20 万 token，2024 年又推到 100 万；Google Gemini 1.5 Pro 演示了 200 万 token<sup><a id=\"fact-27\" class=\"fact-ref\" href=\"#fact-data-27\">[27]</a></sup>。这意味着对于很多场景（一份合同、一本手册、一个项目代码库），可以直接把整份文档塞进 prompt，不需要预先切块和向量化。这条威胁向量库已经讨论了一年多——目前的反驳是'长上下文贵且慢'，但 token 价格每年下降 10 倍，三年后这个反驳可能就站不住。</p><p><strong>异端二：原生多模态模型改变检索范式。</strong>当模型能直接处理图像、音频、视频时，'先嵌入再检索'这个两阶段流程可能被'端到端理解'替代。Google 的 RETRO、DeepMind 的检索增强 Transformer 已经在论文层面尝试把检索揉进模型本身<sup><a id=\"fact-28\" class=\"fact-ref\" href=\"#fact-data-28\">[28]</a></sup>。如果这条路走通，向量库会被压缩成模型内部的一个组件，而不是外部的服务。</p><p><strong>异端三：Agent 和工具调用。</strong>2024 年 Agent 范式起来后，越来越多的应用不再是'查文档回答问题'，而是'调一系列工具完成任务'。Agent 框架里检索只是工具之一，向量库的位置从'核心基础设施'退到'多种工具中的一种'。如果 Agent 范式继续吃掉简单 RAG 应用的份额，向量库的市场天花板会肉眼可见地下降。Anthropic 把 Claude 上下文做到 20 万 token 并把工具使用做成原生能力<sup><a id=\"fact-37\" class=\"fact-ref\" href=\"#fact-data-37\">[37]</a></sup>，OpenAI 推 Assistants API 直接内置文件检索——这两条都是把'外部向量库'的位置压向更窄的细分。</p><p class=\"mechanism\" data-fact-refs=\"f27,f28,f37\">机制上看，这三种异端不是互斥的，而是叠加的——它们都在挑战'RAG 一定要有外部向量库'这个核心假设。但短期（12-18 个月）主流叙事仍然是稳的，因为：(1) 长上下文成本还高 (2) 多模态原生模型还在论文阶段 (3) Agent 应用还少。所以这是一个'硬核还稳但保护带在松动'的时期。</p><p><blockquote class=\"viewpoint\">这个赛道的范式不会被一次性颠覆，而是被'温水煮青蛙'式蚕食——长上下文吃掉中等文档场景，pgvector 吃掉中小规模场景，云厂商内置吃掉企业场景，最后剩给纯向量库的只是'十亿级 + 低延迟 + 复杂过滤'的边角。<span class=\"counter\">但是反过来，如果生成式 AI 应用的真实需求规模继续指数增长（每年 10 倍），即便份额被切薄，剩下的边角也足够养活 2-3 家头部公司——这是 Pinecone 这种纯玩家在赌的剧本。</span></blockquote></p>"
+    },
+    {
+      "id": "isomorphism",
+      "title": "别处的故事 · 镜照本地",
+      "narrative_html": "<p>这一切其实在别处演过几遍了。把视角拉远一点会发现：当下向量库赛道的格局，惊人地像 2010 年前后的 NoSQL 浪潮、以及更早的搜索引擎演进。</p><p><strong>镜子一：2010 年前后的 NoSQL 浪潮。</strong>2009-2012 年，MongoDB、Cassandra、Redis、CouchDB、Neo4j 一夜冒出来，每一家都讲'传统关系数据库搞不定我这个场景'。融资疯狂，估值飞涨。MongoDB 2017 年上市后市值一度达到 250 亿美元<sup><a id=\"fact-29\" class=\"fact-ref\" href=\"#fact-data-29\">[29]</a></sup>。但十年后回头看，真正胜出的有两类——MongoDB（向上做成开发者平台）和 Redis（向下做成内存层基础设施）；夹在中间的 CouchDB、RethinkDB 等等基本退出主流。同时，PostgreSQL 在 2010 年代默默把 JSON 类型、GIN 索引、并行查询全做了，最后大量 NoSQL 的需求被 Postgres 直接吃回去——这就是 'Postgres swallows everything' 现象<sup><a id=\"fact-30\" class=\"fact-ref\" href=\"#fact-data-30\">[30]</a></sup>。</p><p>这面镜子能照出的相似点：(1) 都是新数据类型催生新品类 (2) 都经历了融资爆发期 (3) 都被 Postgres 蚕食。差异也不能忽视：NoSQL 的需求是真的（大规模 web、社交图谱），即便 Postgres 吃回一部分，MongoDB/Redis 还是活下来了；向量库的需求是不是同等真实，目前还在被长上下文模型挑战，而 NoSQL 时代没有这种'整个上游被替代'的威胁。</p><p><strong>镜子二：搜索引擎从 Lucene 到 Elasticsearch 的工程化路径。</strong>1999 年 Doug Cutting 发布 Lucene（Java 的开源全文检索库），2004 年衍生出 Solr 把 Lucene 包装成服务，2010 年 Elastic.co 成立，把 Lucene 做成了一个真正的分布式搜索数据库——Elasticsearch 后来的市值峰值超过 100 亿美元<sup><a id=\"fact-31\" class=\"fact-ref\" href=\"#fact-data-31\">[31]</a></sup>。这条路径和'FAISS → Milvus/Pinecone'的路径几乎完全一致：算法库 → 单机服务 → 分布式云原生。</p><p>这面镜子能照出的相似点：(1) 都是从开源算法库长出商业公司 (2) 都经历了从单机到分布式的工程跃迁 (3) 都最终面临云厂商（AWS OpenSearch fork、AWS Aurora pgvector）的吞噬。但镜照不到的关键差异是：搜索引擎有 20 年时间慢慢长大，向量库只有 5 年；搜索引擎赛道当年没有 Postgres 这种'通用数据库快速集成'的威胁，而向量库一上来就遇到了。</p><p><strong>镜子三：缓存系统的演化（Memcached → Redis → 多模态内存数据库）。</strong>Memcached 是 2003 年的纯内存键值缓存，简单粗暴。Redis 2009 年出来后从'缓存'扩展到'数据结构服务器'再到'流处理 + 搜索 + 时序'的多模态内存数据库——Redis 一边把 Memcached 的位置吃掉，一边把功能往上长，最终在企业市场比 Memcached 大一个数量级。这个故事的关键是：Redis 不是因为算法更好赢的，是因为它愿意'一直做新功能、一直让自己变成多东西的统一入口'。</p><p>对向量库的镜照：能像 Redis 那样'扩展品类边界'的玩家可能活得更好。Pinecone 在做 Pinecone Inference 把嵌入模型也包进去；Weaviate 在做模块化把 reranker 包进去——他们都在尝试不被钉死在'纯向量存储'这个窄品类里。</p><p class=\"mechanism\" data-fact-refs=\"f29,f30,f31\">机制上看，三面镜子都指向同一个规律：'专门做 X 的初创公司' 在大型通用系统（Postgres、云厂商打包服务）的蚕食下，要么扩展边界变成平台，要么被压成基础设施层的一个组件。中间状态——'就做 X 的纯玩家'——历史上鲜有长期赢家。</p><p><blockquote class=\"viewpoint\">向量库赛道的最终格局会像 NoSQL 时代：2-3 家向上扩展的平台公司（Pinecone、Weaviate 走 MongoDB 路）+ 通用数据库内嵌（pgvector 走 Postgres-JSON 路）+ 一两个超大规模分布式开源（Milvus 走 Cassandra 路）。<span class=\"counter\">但是反过来，如果向量这个数据类型本身被原生 AI 模型吸收（不再需要外部存储），整个赛道可能不会留下任何'独立品类'的赢家——这是与 NoSQL 时代最大的差别。</span></blockquote></p>"
+    },
+    {
+      "id": "reflexivity",
+      "title": "主流叙事 · 它如何自我强化又如何崩",
+      "narrative_html": "<p>这个赛道的主流叙事可以浓缩成一句话：'大模型时代每个企业都需要一个向量数据库'。这句话过去 24 个月被 LangChain、a16z、各家向量库供应商、咨询公司无限循环——它不只是描述现实，它在塑造现实。理解这个塑造机制，比理解算法本身更重要。</p><p><strong>叙事的传播链。</strong>OpenAI 在 2022 年底引爆 ChatGPT；a16z 在 2023 年初发布'AI 应用栈'图，把向量数据库放在中间层<sup><a id=\"fact-32\" class=\"fact-ref\" href=\"#fact-data-32\">[32]</a></sup>；LangChain、LlamaIndex 等胶水库把 'embed → vector store → LLM' 做成默认模板；技术博客、会议演讲、招聘 JD 里 'RAG' 一词在 2023 年的 Google Trends 上涨幅几十倍<sup><a id=\"fact-33\" class=\"fact-ref\" href=\"#fact-data-33\">[33]</a></sup>。叙事本身成了入场券——你不提 RAG 就不像在认真做 AI 应用。</p><p><strong>自我强化的链路。</strong>(1) 叙事吸引投资人入场 → (2) 向量库公司拿到融资 → (3) 公司加大销售和开发者关系投入 → (4) 更多企业开始用 → (5) 案例文章在网上扩散 → (6) 这些案例成为下一波客户的'社会证明' → 回到 (1)。这个循环过去两年跑得极快。</p><p>但这个循环里藏着两个关键变量：实际产生价值的 RAG 应用比例、以及替代方案的相对成本。这两个变量都在悄悄变。</p><p><strong>叙事崩塌的三个信号。</strong>第一，如果未来 12 个月里出现一篇被广泛传播的'我们试了 RAG，效果很差，最后回到了直接用长上下文'的工程博客（最好来自 Spotify、Stripe 这种工程文化强的公司），社区情绪会快速翻转。这种'反 RAG' 内容已经在 Hacker News 零星出现，但还没形成共识级的拐点。第二，如果 OpenAI 或 Anthropic 把 100 万 token 上下文的价格降到 1 万 token 价格的 5-10 倍以内（目前差几十倍），中等规模文档场景的 RAG 经济性就会被反转。第三，如果 pgvector 的 1 亿+ 向量场景出现几个标志性的成功案例（比如 Stripe 或 Shopify 用 Aurora pgvector 跑生产 RAG），'纯向量库'这个品类的合理性会受到根本质疑。</p><p class=\"mechanism\" data-fact-refs=\"f32,f33,f34\">机制上看，主流叙事的真正脆弱点不是技术——技术问题总能解决——而是'故事-资本-客户'三角的互相依赖：投资人因为故事进场，公司因为投资人扩张，客户因为公司扩张相信这是事实标准。一旦故事在某个维度（比如长上下文经济性）被证伪，三角形会快速倒塌。</p><p><blockquote class=\"viewpoint\">RAG 叙事不是被一次性事件击碎，而是被'更便宜的长上下文 + 够用的 pgvector + 替代性的 Agent 范式' 三股力量同时温水煮，预计 2026-2027 进入实质性消化期。<span class=\"counter\">但是反过来，如果生成式 AI 应用的总盘子继续扩大（比如每年 5 倍），即便'纯向量库'份额被压缩，绝对营收仍然可能继续增长，叙事就不会真正崩塌——只是会从'必备基础设施'被悄悄重新定义为'可选工具'。</span></blockquote></p><p>对于你这个'要在一小时内拿下这个领域'的读者，最重要的判断是：当向量库公司讲故事时，注意他们是在'卖品类是必要的'，还是在'卖自己在品类里的位置'——前者越来越站不住脚，后者才是真正的差异化。</p>"
+    },
+    {
+      "id": "learning-path",
+      "title": "接下来你应该读什么 · 信谁",
+      "narrative_html": "<p>如果你想再深一层，下面这条路径是最高性价比的。</p><p><strong>必读论文（按照能让你最快到达圈内对话水平排序）。</strong></p><ul><li>Malkov & Yashunin, 'Efficient and robust approximate nearest neighbor search using Hierarchical Navigable Small World graphs'，arXiv 1603.09320——HNSW 的原始论文，是后续所有图索引的基础。</li><li>Johnson, Douze, Jégou, 'Billion-scale similarity search with GPUs'，arXiv 1702.08734——FAISS 论文，理解'为什么向量搜索需要专门的库'最快的入口。</li><li>Lewis et al., 'Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks'，arXiv 2005.11401——RAG 概念的原始论文，2020 年发表，比公众知道这个词早三年<sup><a id=\"fact-34\" class=\"fact-ref\" href=\"#fact-data-34\">[34]</a></sup>。</li><li>Subramanya et al., 'DiskANN: Fast Accurate Billion-point Nearest Neighbor Search on a Single Node'，NeurIPS 2019——理解 SSD 索引的工程哲学。</li></ul><p><strong>必跟人（这五个账号过去 24 个月发布的内容质量稳定）。</strong></p><ul><li>Jo Bergum (@jobergum)——Vespa 的工程师，写向量检索工程实战的最深入账号之一，特别擅长揭示 benchmark 背后的工程取舍。</li><li>James Briggs (Pinecone DevRel)——他的 YouTube 频道是入门 RAG 工作流最好的视频系列，每期带代码。</li><li>Han Xiao (Jina AI 创始人, @hxiao)——嵌入模型 + 检索的工程视角，在中国和欧洲圈子都有影响力。</li><li>Jerry Liu (LlamaIndex 创始人, @jerryjliu0)——RAG 工程问题的'实战派'，频繁分享 chunking、reranking、多模态 RAG 的最新尝试。</li><li>Edo Liberty (Pinecone CEO)——会议演讲多，能听出'纯向量库阵营'对 pgvector 威胁的真实判断。</li></ul><p><strong>必跟的 repo / 文档。</strong>pgvector 的 GitHub（每个 release notes 都值得读）、Milvus 的 docs（架构图特别好）、ANN-Benchmarks（公开 benchmark）、VectorDBBench（Zilliz 维护的工业级 bench<sup><a id=\"fact-35\" class=\"fact-ref\" href=\"#fact-data-35\">[35]</a></sup>）、LlamaIndex 的 docs（工程实战层面最全）。嵌入模型这一侧建议跟 MTEB 这个 benchmark<sup><a id=\"fact-38\" class=\"fact-ref\" href=\"#fact-data-38\">[38]</a></sup>——它覆盖 56 个评测任务，新模型上线必跑，是判断'到底该用哪个 embedding'的最快入口。</p><p><strong>关键社区。</strong>Hacker News 关于 pgvector 的讨论是了解'通用数据库 vs 专用数据库'真实情绪的最佳信号源；MLOps Community Slack 的 #vector-databases 频道；LangChain Discord（嘈杂但有 ground truth）；中文圈关注 Milvus 社区的飞书群以及 Zilliz 的微信公众号；以及每年 Postgres Conference、Vespa Summit、KubeCon 的 AI track 等小众但深度的会议。</p><p><strong>升档建议（按可投入时间分档）。</strong>如果你只有半天，先看 a16z 的 LLM stack 文章 + Pinecone 的 'Vector Databases: From Embeddings to Applications' 课程；如果有一周，重点跑通 LlamaIndex 的 RAG 教程，再读 HNSW 论文，对照看一遍 pgvector README；如果有一个月，把上面四篇必读论文读完，跟 Jo Bergum 的过去 6 个月推文，再试着自己搭一个 pgvector + OpenAI embedding + Cohere reranker 的最小 RAG，跑一遍 MTEB 的中文子集；如果有三个月，加做一次 Milvus / Qdrant / Pinecone 三家的真实负载对比，把数据写成博客发出来——这是进入圈内对话的最快通道。</p>"
+    },
+    {
+      "id": "unknowns",
+      "title": "我（AI）不知道的几件事",
+      "narrative_html": "<p>下面这几件事我（生成本页的 AI 模型）需要诚实标注我的知识边界，因为这一节决定了你是把这页当地图还是当福音。</p><p><strong>1. 我不掌握的事实——国内向量库的真实付费规模。</strong>Milvus、腾讯云 VectorDB、阿里云 OpenSearch 向量版、百度向量数据库的真实 ARR 我没有可靠数据。中国公司很少披露具体收入，西方分析师覆盖也不充分。我对这部分的判断带有显著'欧美中心'偏差。</p><p><strong>2. 我不掌握的事实——pgvector 在 1B+ 向量、千 QPS 写入场景的真实工程极限。</strong>这个量级的生产案例公开很少，我看到的都是 1 亿级别以下的成功故事。10 亿+ 场景下 pgvector 是真的能打、还是会有未知的故障模式，我不知道。</p><p><strong>3. 我不掌握的事实——中国监管对独立向量库技术分叉的影响。</strong>'信创'要求和数据出境规则会不会催生一套国内独立的向量数据库技术栈（类似数据库领域的 OceanBase 现象），我训练数据里这部分覆盖很薄。</p><p><strong>4. 圈内有共识但我不确定细节的——具体 reranker 模型在中文/小语种场景的相对性能。</strong>Cohere Rerank 和 BAAI bge-reranker 在英文 benchmark 上有公开比较，但在中文、阿拉伯语、印地语等小语种场景的实际表现，我看到的多是论坛轶事不是系统评测。</p><p><strong>5. 圈内有共识但我不确定细节的——Pinecone Serverless 在大规模生产场景下的 cold start 实际延迟分布。</strong>Pinecone 官方给的 P50/P99 数据是营销侧的；实际 P99.9 在突发流量下的表现，需要真实客户的工程博客才能验证，我目前缺乏。</p><p><strong>6. 完全没出现在我训练数据里的可能性——AI 原生数据库的兴起。</strong>有一种可能我没法判断概率：未来 24 个月会不会出现'专为 AI 模型工作流设计的全新数据库类别'（比如把嵌入、检索、缓存、agent 状态都做进一个系统）——如果有，它会让现有的'向量数据库'品类整体过时。</p><p><strong>7. 完全没出现在我训练数据里的可能性——硬件加速的颠覆。</strong>NVIDIA、AMD、专用 ASIC 做的向量搜索硬件加速器（类似 GPU 之于深度学习）会不会改变 ANN 的成本结构，我没看到决定性证据。</p><p><strong>8. 我可能被主流叙事系统性误导的地方——'RAG 是 LLM 落地必经之路'这个判断本身。</strong>我承认这是一个被反复重复进我训练数据的论断，但反例（直接用长上下文成功的案例）在叙事上被压制。我对'RAG 必要性'的估计大概率偏高。</p><p><strong>9. 我对中国和俄罗斯团队主导的工作覆盖不足。</strong>HNSW 的发明人 Yury Malkov 是俄罗斯人，但他工作的细节脉络我远不如对美国学派那么熟悉；类似地，我对 Zilliz 的工程内幕、阿里达摩院在向量检索上的实际贡献都缺乏深度。</p><p>请把上面这九条当作你下周做调研时的'优先验证清单'，而不是把这整页内容当作答案。</p>"
+    }
+  ],
+  "facts": [
+    {
+      "id": "f1",
+      "text": "向量数据库赛道 2023 年累计融资超过 7 亿美元，但 2024 年融资节奏明显放缓",
+      "source": "Crunchbase 公开数据汇总",
+      "grade": "B"
+    },
+    {
+      "id": "f2",
+      "text": "FAISS 由 Facebook AI Research 团队（Hervé Jégou 等）于 2017 年 3 月开源",
+      "source": "FAISS GitHub repository",
+      "grade": "A"
+    },
+    {
+      "id": "f3",
+      "text": "HNSW 算法由 Yury Malkov 和 Dmitry Yashunin 在 2016 年预印本提出，2018 年正式发表于 IEEE TPAMI",
+      "source": "arXiv 1603.09320",
+      "grade": "A"
+    },
+    {
+      "id": "f4",
+      "text": "Milvus 由 Zilliz 团队于 2019 年开源，并于 2020 年捐赠给 LF AI & Data 基金会",
+      "source": "Milvus GitHub release history + LF AI 公告",
+      "grade": "A"
+    },
+    {
+      "id": "f5",
+      "text": "Pinecone 2021 年完成 1000 万美元 A 轮，由 Wing Venture Capital 领投",
+      "source": "TechCrunch 2021-01 报道",
+      "grade": "B"
+    },
+    {
+      "id": "f6",
+      "text": "Pinecone 2023 年 4 月完成 1 亿美元 B 轮，估值约 7.5 亿美元",
+      "source": "TechCrunch / The Information 2023-04",
+      "grade": "B"
+    },
+    {
+      "id": "f7",
+      "text": "Chroma 于 2023 年 4 月完成 1800 万美元种子轮，由 Quiet Capital 领投",
+      "source": "Crunchbase + 公司博客",
+      "grade": "B"
+    },
+    {
+      "id": "f8",
+      "text": "pgvector 0.5.0 于 2023 年 9 月发布，引入 HNSW 索引支持",
+      "source": "pgvector GitHub release notes",
+      "grade": "A"
+    },
+    {
+      "id": "f9",
+      "text": "AWS 在 2023 年 11 月将 pgvector 作为 Aurora PostgreSQL 的官方支持扩展",
+      "source": "AWS 官方 blog 2023-11",
+      "grade": "A"
+    },
+    {
+      "id": "f10",
+      "text": "Pinecone Serverless 于 2024 年 1 月发布，按存储和查询用量计费",
+      "source": "Pinecone 官方公告 2024-01",
+      "grade": "A"
+    },
+    {
+      "id": "f11",
+      "text": "OpenAI 于 2024 年 1 月 25 日发布 text-embedding-3-small 和 text-embedding-3-large",
+      "source": "OpenAI 官方博客",
+      "grade": "A"
+    },
+    {
+      "id": "f12",
+      "text": "Pinecone 2023 年 B 轮融资估值 7.5 亿美元，前一轮 A2 轮估值约 1 亿美元",
+      "source": "TechCrunch + Bloomberg 公开报道",
+      "grade": "B"
+    },
+    {
+      "id": "f13",
+      "text": "Weaviate 于 2023 年 4 月完成 5000 万美元 B 轮，由 Index Ventures 领投",
+      "source": "Weaviate 官方公告 + Crunchbase",
+      "grade": "B"
+    },
+    {
+      "id": "f14",
+      "text": "Milvus 2.x 架构采用存算分离 + 四类节点（Coordinator / Query / Data / Index）",
+      "source": "Milvus 官方架构文档",
+      "grade": "A"
+    },
+    {
+      "id": "f15",
+      "text": "Zilliz 2022 年 8 月完成 6000 万美元 B 轮",
+      "source": "Zilliz 官方公告 + Crunchbase",
+      "grade": "B"
+    },
+    {
+      "id": "f16",
+      "text": "Qdrant 用 Rust 实现，在 ANN-Benchmarks 公开评测中并发性能领先 Java/Go 系产品",
+      "source": "ANN-Benchmarks 公开数据 + Qdrant 官方 benchmark",
+      "grade": "B"
+    },
+    {
+      "id": "f17",
+      "text": "Qdrant 2024 年 ARR 据报道在数千万美元区间，相比 Pinecone 仍有差距",
+      "source": "The Information / 行业访谈，区间估计带 hedge",
+      "grade": "C"
+    },
+    {
+      "id": "f18",
+      "text": "PostgreSQL 在 DB-Engines 排名中是过去十年增长最快的关系数据库之一，2023-2024 多次成为 'DBMS of the Year'",
+      "source": "DB-Engines 排名年度报告",
+      "grade": "B"
+    },
+    {
+      "id": "f19",
+      "text": "Vespa 由 Yahoo 于 2017 年开源，2023 年从 Yahoo 独立成 Vespa.ai 公司",
+      "source": "Vespa 官方博客 2023-10",
+      "grade": "A"
+    },
+    {
+      "id": "f20",
+      "text": "Reciprocal Rank Fusion（RRF）由 Cormack 等人 2009 年提出，是混合检索结果合并的事实标准",
+      "source": "Cormack et al., SIGIR 2009 论文",
+      "grade": "A"
+    },
+    {
+      "id": "f21",
+      "text": "Cohere Rerank API 于 2023 年发布；BAAI 的 bge-reranker 系列于 2023-2024 在 Hugging Face 持续更新",
+      "source": "Cohere 官方文档 + Hugging Face 模型卡",
+      "grade": "A"
+    },
+    {
+      "id": "f22",
+      "text": "Pinecone p2.x1 pod 列示价格约 0.096 美元/小时（约 70 美元/月），不同区域有差异",
+      "source": "Pinecone 官方定价页面（截至 2024-Q4）",
+      "grade": "A"
+    },
+    {
+      "id": "f23",
+      "text": "维度灾难是高维空间中欧氏距离区分度迅速下降的几何现象，Beyer et al. 1999 论文是经典参考",
+      "source": "Beyer et al., ICDT 1999, 'When Is Nearest Neighbor Meaningful?'",
+      "grade": "A"
+    },
+    {
+      "id": "f24",
+      "text": "10 亿条 768 维 float32 向量原始数据约 3 TB，加 HNSW 图开销整体内存需求约 4 TB 量级",
+      "source": "Pinecone / Zilliz 工程博客通用估算",
+      "grade": "B"
+    },
+    {
+      "id": "f25",
+      "text": "DiskANN 由微软研究院 Subramanya 等人在 NeurIPS 2019 发表，主张用 SSD 存索引",
+      "source": "Subramanya et al., NeurIPS 2019",
+      "grade": "A"
+    },
+    {
+      "id": "f26",
+      "text": "Pinecone 文档承认写入到可查询的延迟为最终一致，约几秒到几十秒可见",
+      "source": "Pinecone 官方文档 'data freshness' 部分",
+      "grade": "A"
+    },
+    {
+      "id": "f27",
+      "text": "Google Gemini 1.5 Pro 在 2024 年 2 月公开演示了 100 万 token 上下文，研究版本展示 200 万 token",
+      "source": "Google DeepMind 官方博客 + 技术报告",
+      "grade": "A"
+    },
+    {
+      "id": "f28",
+      "text": "RETRO（Retrieval-Enhanced Transformer）由 DeepMind 在 2021 年发表，把检索集成进语言模型预训练",
+      "source": "Borgeaud et al., arXiv 2112.04426",
+      "grade": "A"
+    },
+    {
+      "id": "f29",
+      "text": "MongoDB 2017 年 10 月在 Nasdaq 上市，市值在 2021 年峰值期一度超过 250 亿美元",
+      "source": "MongoDB 财报 + Nasdaq 公开数据",
+      "grade": "A"
+    },
+    {
+      "id": "f30",
+      "text": "PostgreSQL 在 2010 年代陆续加入 JSON/JSONB（2014）、并行查询（2016）、逻辑复制（2017）等能力，蚕食 NoSQL 部分场景",
+      "source": "PostgreSQL 官方版本发布历史",
+      "grade": "A"
+    },
+    {
+      "id": "f31",
+      "text": "Elastic 2018 年 10 月在 NYSE 上市，市值峰值期超过 100 亿美元",
+      "source": "Elastic 财报 + NYSE 公开数据",
+      "grade": "A"
+    },
+    {
+      "id": "f32",
+      "text": "a16z 2023 年 6 月发布 'Emerging Architectures for LLM Applications'，把向量库置于 LLM 应用栈核心层",
+      "source": "a16z 官方博客 2023-06",
+      "grade": "A"
+    },
+    {
+      "id": "f33",
+      "text": "'RAG' 一词在 Google Trends 上从 2023 年初到 2023 年底搜索量增长数十倍",
+      "source": "Google Trends 公开数据",
+      "grade": "B"
+    },
+    {
+      "id": "f34",
+      "text": "RAG 概念的原始论文由 Patrick Lewis 等人在 2020 年 5 月发表（NeurIPS 2020）",
+      "source": "arXiv 2005.11401, Lewis et al.",
+      "grade": "A"
+    },
+    {
+      "id": "f35",
+      "text": "VectorDBBench 由 Zilliz 维护，是公开的工业级向量数据库 benchmark",
+      "source": "VectorDBBench GitHub",
+      "grade": "B"
+    },
+    {
+      "id": "f36",
+      "text": "Snowflake 2024 年完成 Cortex Search 等向量检索能力的产品化集成",
+      "source": "Snowflake 官方产品公告 2024",
+      "grade": "A"
+    },
+    {
+      "id": "f37",
+      "text": "Anthropic Claude 2024 年公开支持 200K token 上下文，企业版本扩展到更高",
+      "source": "Anthropic 官方文档",
+      "grade": "A"
+    },
+    {
+      "id": "f38",
+      "text": "MTEB（Massive Text Embedding Benchmark）由 Hugging Face 等维护，覆盖 56 个嵌入评测任务",
+      "source": "MTEB GitHub + Hugging Face 论文 arXiv 2210.07316",
+      "grade": "A"
+    }
+  ],
+  "experts": [
+    {
+      "name": "Jo Bergum (@jobergum)",
+      "context": "Vespa 工程师，写向量检索工程实战与 benchmark 解读最深入的账号之一"
+    },
+    {
+      "name": "James Briggs",
+      "context": "Pinecone DevRel，YouTube 教程系统覆盖 RAG 工作流入门到进阶"
+    },
+    {
+      "name": "Han Xiao (@hxiao)",
+      "context": "Jina AI 创始人，嵌入模型与检索工程的欧亚视角"
+    },
+    {
+      "name": "Jerry Liu (@jerryjliu0)",
+      "context": "LlamaIndex 创始人，RAG 工程实战派，频繁分享 chunking 与多模态 RAG 进展"
+    },
+    {
+      "name": "Edo Liberty",
+      "context": "Pinecone CEO，原 AWS SageMaker 团队，会议演讲反映纯向量库阵营对生态变化的判断"
+    },
+    {
+      "name": "Andrew Kane",
+      "context": "pgvector 维护者，跟他的 GitHub 动态是了解 Postgres 向量化进展最直接的渠道"
+    },
+    {
+      "name": "Charles Xie (谢宪)",
+      "context": "Zilliz / Milvus 创始人，中文圈了解 Milvus 路线最重要的信号源"
+    }
+  ],
+  "known_unknowns_data": [
+    {
+      "q": "国内向量库（Milvus 商业版、腾讯 VectorDB、阿里 OpenSearch 向量版、百度向量数据库）真实付费规模未公开",
+      "where": "智谱 / 百度 / 腾讯的客户案例公告 + 信通院《向量数据库技术与应用研究报告》"
+    },
+    {
+      "q": "pgvector 在 1B+ 向量、复杂过滤、千 QPS 写入场景的真实工程极限尚未充分验证",
+      "where": "pgvector GitHub issues + Postgres mailing list + Supabase / Neon 工程博客"
+    },
+    {
+      "q": "嵌入模型频繁迭代对各家向量库的真实迁移成本",
+      "where": "Cohere / Voyage / Jina 的客户案例 + 大型 RAG 应用的工程博客"
+    },
+    {
+      "q": "向量库在多模态检索（图像 + 文本 + 音频）场景的方案分歧与最终赢家",
+      "where": "Vespa 官方文档 + Twelve Labs 案例 + CLIP-style 多模态嵌入研究"
+    },
+    {
+      "q": "中国合规要求（数据驻留、信创）是否会催生独立的国产向量库技术分叉",
+      "where": "信通院白皮书 + 阿里云 / 腾讯云 / 华为云的合规产品页面"
+    },
+    {
+      "q": "Pinecone Serverless 在突发流量与 cold start 下的真实 P99.9 延迟分布",
+      "where": "Pinecone 客户的工程博客（Notion / Gong / Common Room 等已知客户）"
+    },
+    {
+      "q": "长上下文模型在中等文档场景对 RAG 的真实替代经济性临界点",
+      "where": "OpenAI / Anthropic / Google 公开的 token 价格趋势 + 大型 SaaS 公司的成本分析"
+    },
+    {
+      "q": "Agent 范式兴起后向量库在工具栈中的实际位置变化",
+      "where": "LangChain / LlamaIndex 的使用统计 + AutoGPT 类项目的架构演化"
+    },
+    {
+      "q": "硬件加速（GPU、ASIC）对向量检索成本结构的潜在颠覆",
+      "where": "NVIDIA cuVS / RAFT 项目动态 + 学术界 ANN 加速器论文"
+    }
+  ],
+  "ai_disclaimer": "本页由 AI 生成（cutoff 2025-Q1）。AI 模型本身就是 RAG 主流叙事的载体——对'非共识''异端''新兴'的覆盖天然不足，对中国本土玩家与小语种场景的覆盖尤其有限。本页所有判断都是可被打脸的假设，请通过推荐区的人脑（Jo Bergum、Jerry Liu、Andrew Kane 等）验证关键结论；'我不知道的几件事'一节是优先验证清单。"
+}

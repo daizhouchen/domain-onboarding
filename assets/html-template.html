@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="generator" content="domain-onboarding" />
+  <meta name="generator" content="domain-onboarding v0.2" />
   <meta name="description" content="{{domain_name}} · 领域速通 · {{cutoff_date}}" />
   <meta name="robots" content="noindex" />
   <title>{{domain_name}} · 领域速通</title>
@@ -15,20 +15,25 @@
     :root {
       --bg:           #faf7f2;        /* 米白 */
       --bg-soft:      #f1ece2;        /* 米白·暗 */
+      --bg-fold:      #f6f2ea;        /* 折叠区底色（更柔） */
       --ink:          #1a1a1a;        /* 墨黑 */
       --ink-soft:     #6b6968;        /* 章节灰 */
       --ink-faint:    #a8a39c;        /* 辅助灰 */
+      --ink-quiet:    #8a8784;        /* 反例 / 弱化文字 */
       --accent:       #c0392b;        /* 朱砂 */
       --accent-soft:  #d96250;        /* 朱砂·浅 */
+      --accent-faint: #e8b8b0;        /* 朱砂·极浅（脚注 hover 用） */
       --rule:         #d6cfc1;        /* 分隔线 */
       --code-bg:      #ede7d8;        /* 等宽底色 */
       --hl:           #f5e6c8;        /* 标黄 */
+      --hl-soft:      #faf0d8;        /* 浅标黄（观点底色） */
       --grade-a:      #5a7a4f;
       --grade-b:      #c0392b;
       --grade-c:      #b88a3a;
       --grade-d:      #6b6968;
 
       --serif: 'Songti SC', 'Source Han Serif SC', 'Noto Serif CJK SC', 'STSong', 'SimSun', serif;
+      --kaiti: 'Kaiti SC', 'STKaiti', 'KaiTi', 'Songti SC', serif;
       --mono:  'Sarasa Mono SC', 'JetBrains Mono', 'Cascadia Mono', 'Menlo', monospace;
 
       --max-w: 720px;
@@ -38,14 +43,18 @@
     [data-theme="dark"] {
       --bg:           #1a1a1a;
       --bg-soft:      #232323;
+      --bg-fold:      #1f1f1d;
       --ink:          #e8e6e1;
       --ink-soft:     #a8a39c;
       --ink-faint:    #6b6968;
+      --ink-quiet:    #807d78;
       --accent:       #e74c3c;
       --accent-soft:  #f08272;
+      --accent-faint: #5a302a;
       --rule:         #3a3937;
       --code-bg:      #2a2a28;
       --hl:           #4a3f25;
+      --hl-soft:      #2e2818;
       --grade-a:      #88a87c;
       --grade-b:      #e74c3c;
       --grade-c:      #d4a960;
@@ -75,10 +84,10 @@
     main {
       max-width: var(--max-w);
       margin: 0 auto;
-      padding: 2.5rem var(--gutter) 6rem;
+      padding: 2.5rem var(--gutter) 4rem;
     }
 
-    p { margin: 0 0 1.5em; }
+    p { margin: 0 0 1.4em; }
 
     h1, h2, h3, h4 {
       font-family: var(--serif);
@@ -89,26 +98,26 @@
 
     h1 {
       font-size: 2.4rem;
-      margin: 0 0 0.4em;
+      margin: 0 0 0.3em;
       letter-spacing: 0.02em;
     }
 
     h2 {
-      font-size: 1.6rem;
-      margin: 3rem 0 1.2em;
+      font-size: 1.5rem;
+      margin: 3.2rem 0 1.2em;
       padding-bottom: 0.4em;
       border-bottom: 1px solid var(--rule);
       color: var(--accent);
     }
 
     h3 {
-      font-size: 1.2rem;
+      font-size: 1.15rem;
       margin: 2rem 0 0.8em;
       color: var(--ink);
     }
 
     h4 {
-      font-size: 1.05rem;
+      font-size: 1.02rem;
       margin: 1.4rem 0 0.6em;
       color: var(--ink-soft);
     }
@@ -144,14 +153,6 @@
     }
     pre code { background: transparent; padding: 0; }
 
-    blockquote {
-      margin: 1.5em 0;
-      padding: 0.4em 1.2em;
-      border-left: 3px solid var(--ink-soft);
-      color: var(--ink-soft);
-      font-style: italic;
-    }
-
     table {
       width: 100%;
       border-collapse: collapse;
@@ -159,7 +160,7 @@
       font-size: 0.95em;
     }
     th, td {
-      padding: 0.6em 0.8em;
+      padding: 0.55em 0.8em;
       text-align: left;
       border-bottom: 1px solid var(--rule);
     }
@@ -170,7 +171,7 @@
     }
     tr:hover td { background: var(--bg-soft); }
 
-    ul, ol { padding-left: 1.6em; margin: 0 0 1.5em; }
+    ul, ol { padding-left: 1.6em; margin: 0 0 1.4em; }
     li { margin-bottom: 0.4em; }
 
     hr {
@@ -186,75 +187,55 @@
     }
 
     /* ============================================================
-       水墨横线（章节分隔 SVG）
+       水墨横线（章节分隔 SVG · 全文仅 1-2 处）
        ============================================================ */
     .ink-rule {
       display: block;
       width: 100%;
       max-width: 360px;
-      margin: 2.5em auto;
-      opacity: 0.55;
+      margin: 3em auto;
+      opacity: 0.5;
     }
     .ink-rule path { stroke: var(--ink-soft); fill: none; }
 
     /* ============================================================
-       顶部 Hero
+       顶部 Hero · 极简
        ============================================================ */
     .hero {
-      padding: 1.5em 0 2em;
+      padding: 1.2em 0 1.8em;
       border-bottom: 1px solid var(--rule);
-      margin-bottom: 2.5em;
+      margin-bottom: 1.5em;
     }
-    .hero .meta-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1.2em;
-      font-family: var(--mono);
-      font-size: 0.82rem;
-      color: var(--ink-soft);
-      margin: 0 0 0.8em;
-    }
-    .hero .meta-row span::before { content: '· '; color: var(--ink-faint); }
-    .hero .meta-row span:first-child::before { content: ''; }
 
-    .hero .thesis {
-      font-size: 1.15rem;
-      line-height: 1.7;
-      color: var(--ink);
+    .hero .subtitle {
+      font-size: 1.05rem;
+      color: var(--ink-soft);
+      margin: 0 0 1.2em;
+      line-height: 1.6;
+      letter-spacing: 0.01em;
+    }
+
+    .hero blockquote.thesis {
       margin: 1em 0 1.4em;
-      padding: 0.8em 1em;
+      padding: 0.7em 1.1em;
       border-left: 3px solid var(--accent);
       background: var(--bg-soft);
-    }
-    .hero .thesis::before {
-      content: '记忆抓手 · ';
-      font-family: var(--mono);
-      font-size: 0.78em;
-      color: var(--accent);
-      letter-spacing: 0.1em;
+      color: var(--ink);
+      font-family: var(--kaiti);
+      font-size: 1.12rem;
+      line-height: 1.7;
+      font-style: normal;
     }
 
-    /* 来源占比饼图 */
-    .grade-overview {
-      display: flex;
-      align-items: center;
-      gap: 1.4em;
-      margin: 1.2em 0 0;
-      padding: 0.8em 0;
-    }
-    .grade-overview svg { flex-shrink: 0; }
-    .grade-overview .legend {
+    .hero .meta-bar {
       font-family: var(--mono);
-      font-size: 0.82rem;
-      line-height: 1.7;
-      color: var(--ink-soft);
+      font-size: 0.8rem;
+      color: var(--ink-faint);
+      letter-spacing: 0.04em;
     }
-    .grade-overview .legend .swatch {
-      display: inline-block;
-      width: 0.7em;
-      height: 0.7em;
-      margin-right: 0.4em;
-      vertical-align: middle;
+    .hero .meta-bar span + span::before {
+      content: ' · ';
+      color: var(--ink-faint);
     }
 
     /* ============================================================
@@ -266,8 +247,8 @@
       z-index: 10;
       background: var(--bg);
       border-bottom: 1px solid var(--rule);
-      padding: 0.6em 0;
-      margin: 0 calc(-1 * var(--gutter)) 1.5em;
+      padding: 0.55em 0;
+      margin: 0 calc(-1 * var(--gutter)) 1.2em;
       padding-left: var(--gutter);
       padding-right: var(--gutter);
       display: flex;
@@ -285,7 +266,7 @@
     .tier-btn {
       font-family: var(--serif);
       font-size: 0.92rem;
-      padding: 0.35em 0.9em;
+      padding: 0.3em 0.85em;
       background: transparent;
       color: var(--ink-soft);
       border: 1px solid var(--rule);
@@ -308,7 +289,7 @@
       background: transparent;
       color: var(--ink-soft);
       border: 1px solid var(--rule);
-      padding: 0.35em 0.7em;
+      padding: 0.3em 0.7em;
       border-radius: 2px;
       cursor: pointer;
     }
@@ -316,50 +297,138 @@
 
     /* ============================================================
        档位可见性控制
-       核心：body data-tier 控制哪些块显示
+       v0.2：以章节为单位，按 tier 控制显隐
+       - 闪研：仅前 4 章（what-and-why / history / players / insider）+ 末尾折叠区
+       - 精研：前 4 章 + 第 5 章（structural）+ 第 8 章（reflexivity）+ 折叠区
+       - 深研：全部 10 章 + 自检题展开 + 折叠区
        ============================================================ */
-    body[data-tier="flash"]  .tier-medium,
-    body[data-tier="flash"]  .tier-deep,
-    body[data-tier="medium"] .tier-deep {
+    .chapter { margin: 0 0 0.5em; }
+
+    /* 默认所有章节都隐藏，再按 tier 打开 */
+    body[data-tier="flash"] .chapter.tier-medium,
+    body[data-tier="flash"] .chapter.tier-deep,
+    body[data-tier="medium"] .chapter.tier-deep {
       display: none;
     }
 
-    /* 档位差异化视觉提示（精研有副线、深研有主线） */
-    .tier-medium::before {
-      content: '精研 ⊕';
-      display: block;
-      font-family: var(--mono);
-      font-size: 0.72rem;
-      color: var(--ink-faint);
-      letter-spacing: 0.18em;
-      margin-bottom: 0.3em;
+    /* 折叠区按档位的可见性：自检题仅深研可见 */
+    body[data-tier="flash"]  details.self-check-fold,
+    body[data-tier="medium"] details.self-check-fold {
+      display: none;
     }
-    .tier-deep::before {
-      content: '深研 ⊛';
-      display: block;
-      font-family: var(--mono);
-      font-size: 0.72rem;
-      color: var(--accent);
-      letter-spacing: 0.18em;
-      margin-bottom: 0.3em;
+
+    /* 章节差异化视觉提示（不暴露分析框架名，仅小标） */
+    .chapter.tier-medium > h2::after {
+      content: ' ⊕';
+      color: var(--ink-faint);
+      font-size: 0.72em;
+      font-weight: normal;
+      letter-spacing: 0.1em;
+    }
+    .chapter.tier-deep > h2::after {
+      content: ' ⊛';
+      color: var(--accent-soft);
+      font-size: 0.72em;
+      font-weight: normal;
+      letter-spacing: 0.1em;
     }
 
     /* ============================================================
-       事实锚点
+       事实脚注 · 朴素 [N] 上标
        ============================================================ */
-    .fact-anchor {
+    sup .fact-ref,
+    sup a.fact-ref,
+    .fact-ref {
       font-family: var(--mono);
       font-size: 0.78em;
       color: var(--accent);
       vertical-align: super;
-      cursor: pointer;
+      line-height: 0;
       text-decoration: none;
       border: none;
-      padding: 0 0.15em;
+      padding: 0 0.1em;
+      cursor: pointer;
+      position: relative;
     }
-    .fact-anchor:hover { background: var(--hl); }
+    .fact-ref:hover {
+      text-decoration: underline;
+      background: var(--accent-faint);
+    }
 
-    /* 来源等级徽章 */
+    /* 事实 hover tooltip（CSS only · 简易实现） */
+    .fact-ref[data-tip]:hover::after {
+      content: attr(data-tip);
+      position: absolute;
+      left: 0;
+      top: 1.4em;
+      z-index: 50;
+      max-width: 320px;
+      width: max-content;
+      padding: 0.5em 0.7em;
+      background: var(--ink);
+      color: var(--bg);
+      font-family: var(--serif);
+      font-size: 0.82rem;
+      line-height: 1.5;
+      border-radius: 2px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+      white-space: normal;
+      pointer-events: none;
+      vertical-align: baseline;
+    }
+
+    /* ============================================================
+       机制段落 · 朱砂细边线（不写"机制层"字样）
+       ============================================================ */
+    p.mechanism {
+      border-left: 2px solid var(--accent);
+      padding-left: 1em;
+      margin-left: 0;
+    }
+
+    /* ============================================================
+       观点段落 · 朱砂粗边线 + 楷体 + 底色微 highlight
+       ============================================================ */
+    blockquote.viewpoint {
+      margin: 1.6em 0;
+      padding: 0.7em 1.1em;
+      border-left: 4px solid var(--accent);
+      background: var(--hl-soft);
+      color: var(--ink);
+      font-family: var(--kaiti);
+      font-style: normal;
+      font-size: 1.05rem;
+      line-height: 1.75;
+    }
+    blockquote.viewpoint p {
+      margin: 0 0 0.6em;
+    }
+    blockquote.viewpoint p:last-child {
+      margin-bottom: 0;
+    }
+
+    /* 反例：viewpoint 内部的 .counter 子节点（span / p / em） */
+    blockquote.viewpoint .counter {
+      display: block;
+      margin-top: 0.6em;
+      padding-top: 0.5em;
+      border-top: 1px dashed var(--rule);
+      color: var(--ink-quiet);
+      font-family: var(--serif);
+      font-size: 0.92em;
+      line-height: 1.7;
+    }
+    blockquote.viewpoint .counter::before {
+      content: '反例 · ';
+      font-family: var(--mono);
+      font-size: 0.78em;
+      color: var(--accent-soft);
+      letter-spacing: 0.1em;
+    }
+
+    /* ============================================================
+       来源等级徽章（折叠区表格里用）
+       ============================================================ */
     .grade {
       display: inline-block;
       font-family: var(--mono);
@@ -375,99 +444,199 @@
     .grade-c { background: var(--grade-c); color: #fff; }
     .grade-d { background: var(--grade-d); color: #fff; }
 
-    /* ============================================================
-       骨架五件套 section
-       ============================================================ */
-    .skeleton-section {
-      margin: 2.5em 0;
-    }
-    .skeleton-section .section-num {
-      font-family: var(--mono);
-      font-size: 0.78rem;
-      color: var(--ink-faint);
-      letter-spacing: 0.18em;
-    }
+    .source-grading-table { margin: 1.2em 0; }
 
     /* ============================================================
-       自检题（折叠）
+       底部折叠区 · details / summary
+       不抢主流叙事戏：低对比度，朴素 summary
        ============================================================ */
-    details.self-check {
-      margin: 1em 0;
-      padding: 0.8em 1.2em;
-      background: var(--bg-soft);
-      border-left: 3px solid var(--accent-soft);
-      border-radius: 2px;
+    .folds {
+      margin: 3em 0 1em;
+      border-top: 1px solid var(--rule);
+      padding-top: 1.5em;
     }
-    details.self-check summary {
+
+    details.sources-fold,
+    details.experts-fold,
+    details.self-check-fold,
+    details.unknowns-data-fold {
+      margin: 0.6em 0;
+      padding: 0.5em 0;
+      border-bottom: 1px dashed var(--rule);
+    }
+
+    details.sources-fold summary,
+    details.experts-fold summary,
+    details.self-check-fold summary,
+    details.unknowns-data-fold summary {
       cursor: pointer;
-      font-weight: 600;
-      color: var(--ink);
+      font-family: var(--serif);
+      font-size: 0.95rem;
+      color: var(--ink-soft);
+      letter-spacing: 0.02em;
       list-style: none;
       outline: none;
+      padding: 0.4em 0;
+      transition: color 0.2s;
     }
-    details.self-check summary::-webkit-details-marker { display: none; }
-    details.self-check summary::before {
+    details.sources-fold summary::-webkit-details-marker,
+    details.experts-fold summary::-webkit-details-marker,
+    details.self-check-fold summary::-webkit-details-marker,
+    details.unknowns-data-fold summary::-webkit-details-marker {
+      display: none;
+    }
+    details.sources-fold summary::before,
+    details.experts-fold summary::before,
+    details.self-check-fold summary::before,
+    details.unknowns-data-fold summary::before {
       content: '▸ ';
-      color: var(--accent);
-      transition: transform 0.2s;
+      color: var(--ink-faint);
       display: inline-block;
+      width: 1.1em;
     }
-    details.self-check[open] summary::before {
+    details[open].sources-fold summary::before,
+    details[open].experts-fold summary::before,
+    details[open].self-check-fold summary::before,
+    details[open].unknowns-data-fold summary::before {
       content: '▾ ';
     }
-    details.self-check .answer {
-      margin-top: 0.8em;
-      padding-top: 0.8em;
-      border-top: 1px dashed var(--rule);
-      color: var(--ink-soft);
+    details.sources-fold summary:hover,
+    details.experts-fold summary:hover,
+    details.self-check-fold summary:hover,
+    details.unknowns-data-fold summary:hover {
+      color: var(--accent);
     }
 
-    /* ============================================================
-       Disclaimer
-       ============================================================ */
-    .disclaimer {
-      margin: 3em 0 1em;
-      padding: 1.2em 1.4em;
-      background: var(--bg-soft);
-      border: 1px solid var(--rule);
-      border-left: 3px solid var(--ink-soft);
-      font-size: 0.92em;
+    /* 折叠区展开后的内容 · 低对比度 */
+    details.sources-fold[open],
+    details.experts-fold[open],
+    details.self-check-fold[open],
+    details.unknowns-data-fold[open] {
+      background: var(--bg-fold);
+      padding: 0.5em 1em;
+      border-radius: 2px;
+    }
+    details.sources-fold > *:not(summary),
+    details.experts-fold > *:not(summary),
+    details.self-check-fold > *:not(summary),
+    details.unknowns-data-fold > *:not(summary) {
       color: var(--ink-soft);
+      font-size: 0.95rem;
       line-height: 1.7;
     }
-    .disclaimer h3 {
-      margin-top: 0;
-      color: var(--ink);
-      font-size: 1rem;
-      letter-spacing: 0.05em;
-    }
-    .disclaimer .label {
-      font-family: var(--mono);
-      font-size: 0.78em;
-      color: var(--accent);
-      letter-spacing: 0.12em;
+    details.sources-fold p,
+    details.experts-fold p,
+    details.self-check-fold p,
+    details.unknowns-data-fold p {
+      margin: 0.6em 0;
     }
 
-    /* ============================================================
-       未知边界清单
-       ============================================================ */
-    .unknowns-list {
+    /* 自检题内的 details（每道题嵌套折叠答案） */
+    details.self-check-fold details.qa {
+      margin: 0.5em 0;
+      padding: 0.4em 0;
+      border-bottom: 1px dotted var(--rule);
+    }
+    details.self-check-fold details.qa summary {
+      font-size: 0.95rem;
+      padding: 0.3em 0;
+    }
+    details.self-check-fold details.qa .answer {
+      margin-top: 0.5em;
+      padding: 0.5em 0.8em;
+      background: var(--bg-soft);
+      border-left: 2px solid var(--accent-soft);
+      color: var(--ink-soft);
+    }
+
+    /* 已知未知数据折叠区的 ul（闸门要数 li） */
+    details.unknowns-data-fold ul {
       list-style: none;
       padding: 0;
+      margin: 0.6em 0;
     }
-    .unknowns-list li {
-      padding: 0.6em 0 0.6em 2em;
+    details.unknowns-data-fold li {
+      padding: 0.4em 0 0.4em 1.6em;
       position: relative;
       border-bottom: 1px dashed var(--rule);
     }
-    .unknowns-list li::before {
+    details.unknowns-data-fold li::before {
       content: '?';
       font-family: var(--mono);
       font-weight: 600;
       color: var(--accent);
       position: absolute;
       left: 0;
-      top: 0.6em;
+      top: 0.4em;
+    }
+    details.unknowns-data-fold li:last-child {
+      border-bottom: none;
+    }
+
+    /* 推荐人 / 账号 / 社区列表 */
+    details.experts-fold ul {
+      list-style: none;
+      padding: 0;
+      margin: 0.6em 0;
+    }
+    details.experts-fold li {
+      padding: 0.4em 0;
+      border-bottom: 1px dashed var(--rule);
+    }
+    details.experts-fold li:last-child { border-bottom: none; }
+    details.experts-fold li .who {
+      font-weight: 600;
+      color: var(--ink);
+    }
+    details.experts-fold li .why {
+      color: var(--ink-soft);
+      font-size: 0.92rem;
+    }
+
+    /* 信息来源完整事实清单 */
+    details.sources-fold ol.facts-complete {
+      list-style: decimal;
+      padding-left: 2em;
+      margin: 0.6em 0;
+      color: var(--ink-soft);
+      font-size: 0.92rem;
+      line-height: 1.65;
+    }
+    details.sources-fold ol.facts-complete li[id^="fact-data-"] {
+      padding: 0.25em 0;
+      border-bottom: 1px dotted var(--rule);
+    }
+    details.sources-fold ol.facts-complete li[id^="fact-data-"]:target {
+      background: var(--hl);
+      color: var(--ink);
+    }
+
+    /* ============================================================
+       尾跋小字（替代 v0.1 的 disclaimer 大块）
+       ============================================================ */
+    footer.postscript {
+      margin: 2.5em 0 1em;
+      padding: 1em 0 0;
+      border-top: 1px solid var(--rule);
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--ink-faint);
+      font-style: italic;
+    }
+    footer.postscript strong {
+      color: var(--ink-soft);
+      font-weight: 600;
+    }
+
+    /* 末尾页脚（最末一行） */
+    footer.colophon {
+      margin-top: 2em;
+      padding-top: 1em;
+      border-top: 1px solid var(--rule);
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      color: var(--ink-faint);
+      text-align: center;
     }
 
     /* ============================================================
@@ -476,13 +645,18 @@
     @media (max-width: 640px) {
       :root { --gutter: 1.2rem; }
       body { font-size: 16px; }
-      h1 { font-size: 1.9rem; }
-      h2 { font-size: 1.35rem; }
-      .hero .thesis { font-size: 1.05rem; }
-      .grade-overview { flex-direction: column; align-items: flex-start; gap: 0.6em; }
+      h1 { font-size: 1.85rem; }
+      h2 { font-size: 1.3rem; }
+      .hero blockquote.thesis { font-size: 1rem; }
+      .hero .subtitle { font-size: 0.98rem; }
+      blockquote.viewpoint { font-size: 1rem; padding: 0.6em 0.9em; }
+      p.mechanism { padding-left: 0.8em; }
       .tier-bar { gap: 0.3em; padding: 0.5em var(--gutter); }
-      .tier-btn { font-size: 0.85rem; padding: 0.3em 0.6em; }
+      .tier-btn { font-size: 0.85rem; padding: 0.28em 0.6em; }
       .theme-btn { margin-left: 0; }
+      .fact-ref[data-tip]:hover::after {
+        max-width: calc(100vw - 2 * var(--gutter));
+      }
     }
 
     /* ============================================================
@@ -490,12 +664,23 @@
        ============================================================ */
     @media print {
       .tier-bar, .theme-btn { display: none !important; }
-      body[data-tier="flash"]  .tier-medium,
-      body[data-tier="flash"]  .tier-deep,
-      body[data-tier="medium"] .tier-deep { display: block !important; }
+      body[data-tier="flash"]  .chapter.tier-medium,
+      body[data-tier="flash"]  .chapter.tier-deep,
+      body[data-tier="medium"] .chapter.tier-deep {
+        display: block !important;
+      }
+      body[data-tier="flash"]  details.self-check-fold,
+      body[data-tier="medium"] details.self-check-fold {
+        display: block !important;
+      }
+      details { open: true; }
+      details > summary { list-style: none; }
+      details:not([open]) > *:not(summary) { display: block !important; }
       body { background: #fff; color: #000; font-size: 11pt; }
       h2 { page-break-after: avoid; }
-      .skeleton-section { page-break-inside: avoid; }
+      .chapter { page-break-inside: avoid; }
+      .fact-ref[data-tip]:hover::after { display: none; }
+      footer.postscript { page-break-inside: avoid; }
     }
   </style>
 </head>
@@ -514,35 +699,33 @@
   <main>
 
     <!-- =======================================================
-         顶部 Hero
+         顶部 Hero · 极简版
+         只保留：H1 + 副标题 + thesis 一句话 + cutoff 小字
          ======================================================= -->
     <header class="hero">
       <h1>{{domain_name}}</h1>
-      <div class="meta-row">
-        <span>领域速通 · {{tier_label}}</span>
+      <div class="subtitle">{{subtitle}}</div>
+      <blockquote class="thesis">{{thesis_one_liner}}</blockquote>
+      <div class="meta-bar">
         <span>cutoff {{cutoff_date}}</span>
-        <span>事实锚点 {{fact_count}}</span>
-        <span>预计阅读 {{reading_time}}</span>
+        <span>{{tier_label}}</span>
       </div>
-
-      <div class="thesis">{{thesis_one_liner}}</div>
-
-      <!-- 来源分级总览（SVG 饼图，由 render.py 注入比例）-->
-      <div class="grade-overview" aria-label="来源等级占比">
-        {{{grade_pie_svg}}}
-        <div class="legend">
-          <div><span class="swatch" style="background:var(--grade-a)"></span>A 一手 {{grade_a_pct}}</div>
-          <div><span class="swatch" style="background:var(--grade-b)"></span>B 深度二手 {{grade_b_pct}}</div>
-          <div><span class="swatch" style="background:var(--grade-c)"></span>C 摘编 {{grade_c_pct}}</div>
-          <div><span class="swatch" style="background:var(--grade-d)"></span>D 道听途说 {{grade_d_pct}}</div>
-        </div>
-      </div>
-      {{{source_grading_table_html}}}
     </header>
 
     <!-- =======================================================
-         水墨分隔（SVG·章节分割）
+         主体 · 10 章弧线
+         由 render.py 把 chapters[] 渲染成
+           <section class="chapter tier-X" id="chap-id">
+             <h2>章节标题</h2>
+             {{ narrative_html }}
+           </section>
+         串联输出到 {{{chapters_html}}}
          ======================================================= -->
+    <section class="chapters">
+      {{{chapters_html}}}
+    </section>
+
+    <!-- 章节末水墨分隔（仅一处，承上启下） -->
     <svg class="ink-rule" viewBox="0 0 360 14" aria-hidden="true">
       <path d="M0 7 Q 30 4 60 7 T 120 7 T 180 7 T 240 7 T 300 7 T 360 7" stroke-width="0.8"/>
       <path d="M170 4 Q 178 1 186 4" stroke-width="1.2"/>
@@ -550,182 +733,56 @@
     </svg>
 
     <!-- =======================================================
-         骨架五件套
+         底部折叠区（不抢戏）
+         - 信息来源（A/B/C/D 等级表 + 完整事实清单）
+         - 推荐人 / 账号 / 社区
+         - 自检题（仅深研档可见）
+         - 已知未知数据（旁路 ul · 闸门数据源）
          ======================================================= -->
+    <section class="folds" aria-label="底部折叠资料">
 
-    <!-- 1. 核心概念图 -->
-    <section class="skeleton-section tier-flash" id="concept-map">
-      <div class="section-num">骨架 · 一</div>
-      <h2>核心概念图</h2>
-      {{{concepts_html}}}
-    </section>
+      <details class="sources-fold">
+        <summary>信息来源（{{fact_count}} 条）· A/B/C/D 等级表</summary>
+        {{{source_grading_table_html}}}
+        {{{facts_complete_list_html}}}
+      </details>
 
-    <!-- 2. 玩家地图 -->
-    <section class="skeleton-section tier-flash" id="player-map">
-      <div class="section-num">骨架 · 二</div>
-      <h2>玩家地图</h2>
-      {{{players_html}}}
-    </section>
+      <details class="experts-fold">
+        <summary>推荐人 / 账号 / 社区（去人肉验证）</summary>
+        {{{recommendations_html}}}
+      </details>
 
-    <!-- 3. 时间轴 -->
-    <section class="skeleton-section tier-flash" id="timeline">
-      <div class="section-num">骨架 · 三</div>
-      <h2>时间轴</h2>
-      {{{timeline_html}}}
-    </section>
+      <details class="self-check-fold tier-deep">
+        <summary>自检题 · 读完测自己（10 道）</summary>
+        {{{self_check_html}}}
+      </details>
 
-    <!-- 4. 矛盾结构 -->
-    <section class="skeleton-section tier-flash" id="tensions">
-      <div class="section-num">骨架 · 四</div>
-      <h2>矛盾结构</h2>
-      {{{tensions_html}}}
-    </section>
+      <details class="unknowns-data-fold" id="known-unknowns">
+        <summary>未知边界数据（旁路）</summary>
+        {{{known_unknowns_data_html}}}
+      </details>
 
-    <!-- 5. 学习路径 -->
-    <section class="skeleton-section tier-flash" id="learning-path">
-      <div class="section-num">骨架 · 五</div>
-      <h2>学习路径</h2>
-      {{{learning_path_html}}}
-    </section>
-
-    <svg class="ink-rule" viewBox="0 0 360 14" aria-hidden="true">
-      <path d="M0 7 Q 30 4 60 7 T 120 7 T 180 7 T 240 7 T 300 7 T 360 7" stroke-width="0.8"/>
-      <circle cx="180" cy="7" r="2" fill="var(--ink-soft)" stroke="none"/>
-    </svg>
-
-    <!-- =======================================================
-         三层证据链
-         （事实/机制/观点的分层渲染区，每条都标 fact-anchor IDs）
-         ======================================================= -->
-    <section class="tier-flash" id="evidence-chain">
-      <h2>三层证据链 · 事实 → 机制 → 观点</h2>
-      <p>下方每一条机制陈述配 ≥3 个事实锚点；每一条观点陈述配反例事实或证伪条件。锚点编号 fact[N] 在末尾"来源完整列表"可定位。</p>
-
-      <h3>事实层</h3>
-      <div class="facts-container tier-flash">
-      {{{facts_html}}}
-      </div>
-
-      <h3>机制层</h3>
-      <div class="mechanisms-container tier-flash">
-      {{{mechanisms_html}}}
-      </div>
-
-      <h3>观点层</h3>
-      <div class="viewpoints-container tier-flash">
-      {{{viewpoints_html}}}
-      </div>
     </section>
 
     <!-- =======================================================
-         反身性章节（精研+）
+         尾跋小字 · AI disclaimer 弱化版
+         保留 id="ai-disclaimer" 供闸门扫描
          ======================================================= -->
-    <section class="tier-medium" id="reflexivity">
-      <h2>反身性 · 主流叙事 vs 失效条件</h2>
-      <p>这领域当前的"主流叙事"是什么？谁在传播、为什么传播？什么情况下叙事会反转？</p>
-      {{{reflexivity_html}}}
-    </section>
-
-    <!-- 行业认知误区（精研+）-->
-    <section class="tier-medium" id="misconceptions">
-      <h2>认知误区 · 圈外误解 / 圈内盲区</h2>
-      {{{misconceptions_html}}}
-    </section>
-
-    <!-- =======================================================
-         结构层（深研）
-         ======================================================= -->
-    <section class="tier-deep" id="structure-layer">
-      <h2>结构层 · 为什么必须这样</h2>
-      <p>哪些约束是 reality-shaping 的？换掉哪些条件这领域的形态会完全不同？</p>
-      {{{structure_html}}}
-    </section>
-
-    <!-- =======================================================
-         范式层（深研）
-         ======================================================= -->
-    <section class="tier-deep" id="paradigm-layer">
-      <h2>范式层 · 当前处于何种范式时期</h2>
-      <p>领域的"硬核"是什么？异端在哪？范式切换的信号是什么？</p>
-      {{{paradigm_html}}}
-    </section>
-
-    <!-- =======================================================
-         跨领域同构（深研）
-         ======================================================= -->
-    <section class="tier-deep" id="isomorphism">
-      <h2>跨领域同构 · 哪些历史/邻接领域可类比</h2>
-      <p>同构案例 ≥2 个，每个案例必须给"同构点"和"反同构点"——只取其同、不见其异是廉价类比。</p>
-      {{{isomorphism_html}}}
-    </section>
-
-    <svg class="ink-rule" viewBox="0 0 360 14" aria-hidden="true">
-      <path d="M0 7 Q 60 1 120 7 T 240 7 T 360 7" stroke-width="0.8"/>
-    </svg>
-
-    <!-- =======================================================
-         未知边界清单（必出）
-         ======================================================= -->
-    <section id="known-unknowns">
-      <h2>已知的未知 · Known Unknowns</h2>
-      <p>这是模型当前 cutoff 不掌握、或领域内本身没有共识的问题清单。回答这些问题需要去找一手来源 / 圈内人。</p>
-      {{{known_unknowns_html}}}
-    </section>
-
-    <!-- =======================================================
-         自检题（深研）
-         ======================================================= -->
-    <section class="tier-deep" id="self-check">
-      <h2>自检题 · 读完测自己</h2>
-      <p>读完后能用自己的话答出下面任一题，才算入门。点击展开参考答案。</p>
-      {{{self_check_html}}}
-    </section>
-
-    <svg class="ink-rule" viewBox="0 0 360 14" aria-hidden="true">
-      <path d="M0 7 Q 30 4 60 7 T 120 7 T 180 7 T 240 7 T 300 7 T 360 7" stroke-width="0.8"/>
-    </svg>
-
-    <!-- =======================================================
-         AI 视角局限性 disclaimer（必出 · 强制）
-         ======================================================= -->
-    <section class="disclaimer" id="ai-disclaimer">
-      <div class="label">AI 视角局限性 · 必读</div>
-      <h3>这份速通的边界</h3>
-      <p>本页由 AI 模型基于训练数据 + 公开来源生成，cutoff 日期 <strong>{{cutoff_date}}</strong>。这意味着：</p>
-      <ul>
-        <li>cutoff 之后的事件、融资、监管变化、人事变动、产品发布——本页一概不掌握。请用户自行核验最新情况。</li>
-        <li>AI 模型本身是"主流叙事"的载体——训练数据里行业自媒体多于一手财报、成功故事多于失败复盘、投资人语言渗透各行各业。本页已尽量对照反例事实，但仍可能有共识盲区。</li>
-        <li>本领域内**圈内人才知道的"局内常识"**有可能未被任何文本数据捕获——本页用"圈内 / 圈外认知差"章节尽量呈现，但缺漏不可避免。</li>
-        <li>所有"观点层"判断都配了证伪条件——读者应将其作为可被打脸的假设、不是真理。</li>
-      </ul>
+    <footer class="postscript" id="ai-disclaimer">
+      本页由 AI 生成（<strong>{{cutoff_date}}</strong> cutoff）。AI 模型本身就是主流叙事载体——对"非共识""异端"覆盖天然不足。本页所有判断都是可被打脸的假设。请通过推荐区的人脑验证关键结论。
       {{{ai_disclaimer_extra_html}}}
-    </section>
+    </footer>
 
-    <!-- =======================================================
-         来源完整列表 + 推荐人/账号/会议
-         ======================================================= -->
-    <section id="sources">
-      <h2>来源 · Sources</h2>
-      <h3>事实锚点完整列表</h3>
-      {{{sources_list_html}}}
-
-      <h3>推荐人 / 账号 / 会议 / 社区</h3>
-      <p>用户应去人肉验证这些一手发声者，本页列举只是入口。</p>
-      {{{recommendations_html}}}
-    </section>
-
-    <!-- =======================================================
-         页脚
-         ======================================================= -->
-    <footer style="margin-top: 4em; padding-top: 1.5em; border-top: 1px solid var(--rule); font-family: var(--mono); font-size: 0.82rem; color: var(--ink-faint); text-align: center;">
+    <!-- 末尾水印 -->
+    <footer class="colophon">
       <div>{{domain_name}} · 领域速通 · 生成于 {{generation_date}}</div>
-      <div style="margin-top: 0.4em;">single-file · zero CDN · offline-ready</div>
+      <div style="margin-top: 0.3em;">single-file · zero CDN · offline-ready</div>
     </footer>
 
   </main>
 
   <!-- =======================================================
-       JavaScript · 档位 / 主题 / 锚点
+       JavaScript · 档位 / 主题 / 脚注
        ======================================================= -->
   <script>
     (function () {
@@ -784,32 +841,45 @@
         }
       } catch (e) { /* localStorage disabled */ }
 
-      /* ----------- 锚点跳转高亮 ----------- */
+      /* ----------- 脚注点击：跳到底部完整列表并高亮 ----------- */
       document.addEventListener('click', function (e) {
-        const target = e.target;
-        if (target.classList && target.classList.contains('fact-anchor')) {
+        const target = e.target.closest && e.target.closest('.fact-ref');
+        if (target) {
           const href = target.getAttribute('href');
           if (href && href.charAt(0) === '#') {
             e.preventDefault();
+            // 先确保 sources-fold 是展开状态
+            const fold = document.querySelector('details.sources-fold');
+            if (fold && !fold.open) fold.open = true;
             const el = document.querySelector(href);
             if (el) {
-              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              el.style.transition = 'background 0.3s';
-              const orig = el.style.background;
-              el.style.background = 'var(--hl)';
-              setTimeout(function () { el.style.background = orig; }, 1500);
+              setTimeout(function () {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                const orig = el.style.background;
+                el.style.transition = 'background 0.4s';
+                el.style.background = 'var(--hl)';
+                setTimeout(function () { el.style.background = orig; }, 1800);
+              }, 60);
             }
           }
         }
       });
 
-      /* ----------- 自检题 details 全展开 / 全收起 快捷 ----------- */
-      document.addEventListener('keydown', function (e) {
-        if (e.key === 'e' && e.altKey) {
-          document.querySelectorAll('details.self-check').forEach(function (d) { d.open = true; });
-        } else if (e.key === 'c' && e.altKey) {
-          document.querySelectorAll('details.self-check').forEach(function (d) { d.open = false; });
-        }
+      /* ----------- 脚注 hover：从底部 fact-data-N 取文本注入 data-tip ----------- */
+      // 只在第一次 hover 时注入，避免每次 DOM 查询
+      document.querySelectorAll('.fact-ref').forEach(function (ref) {
+        ref.addEventListener('mouseenter', function () {
+          if (ref.hasAttribute('data-tip')) return;
+          const href = ref.getAttribute('href');
+          if (!href || href.charAt(0) !== '#') return;
+          const dataItem = document.querySelector(href);
+          if (dataItem) {
+            // 截断到 ~200 字
+            let txt = dataItem.textContent.replace(/\s+/g, ' ').trim();
+            if (txt.length > 200) txt = txt.slice(0, 200) + '…';
+            ref.setAttribute('data-tip', txt);
+          }
+        }, { once: true });
       });
 
     })();

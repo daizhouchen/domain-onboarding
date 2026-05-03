@@ -16,6 +16,9 @@ quality_check.py — 内容闸门（domain-onboarding skill）
 6. 已知的未知清单：≥5/8/12 条（按档位）
 7. 单边叙事检测：每个 viewpoint section 出现至少一个反对话语标志
 8. 来源分级表必出：.source-grading-table 存在
+9. H1/H2/H3 不暴露分析框架（v0.2 新增）：标题文字不含"事实层/机制层/观点层/
+   反身性/结构层/范式层/三层证据链/骨架·一/二/三/四/五"等框架名，应改用
+   问题驱动的叙事化标题
 
 CLI: python quality_check.py output.html
 退出码: 0 通过 / 1 有 violations / 2 输入错误
@@ -99,6 +102,29 @@ COUNTER_MARKERS: List[str] = [
     "假如不",
 ]
 
+# H1/H2/H3 不允许出现的分析框架名（v0.2 新增 · 标题暴露扫描）
+HEADING_FORBIDDEN_TERMS: List[str] = [
+    "事实层",
+    "机制层",
+    "观点层",
+    "反身性",
+    "结构层",
+    "范式层",
+    "跨领域同构",
+    "三层证据链",
+    "骨架·一",
+    "骨架·二",
+    "骨架·三",
+    "骨架·四",
+    "骨架·五",
+    "骨架 · 一",
+    "骨架 · 二",
+    "骨架 · 三",
+    "骨架 · 四",
+    "骨架 · 五",
+]
+
+
 # 工具索引附录区段（FORBIDDEN_TERMS 在这里出现豁免）
 TOOL_INDEX_MARKERS = [
     "id=\"tool-index\"",
@@ -131,8 +157,9 @@ def find_blocks_by_class(html_text: str, cls: str) -> List[Tuple[int, str]]:
     """返回 [(起始位置, 块 HTML 文本), ...]，简易实现：从开标签到下一个同名同类闭合
     或 section 边界。够用即可——质检对宽容度有要求。"""
     blocks: List[Tuple[int, str]] = []
+    # v0.2 起 .viewpoint 改用 <blockquote>，.mechanism 用 <p>，所以扩展标签集合
     pat = re.compile(
-        r'<(div|section|article|p|li)[^>]*class\s*=\s*["\'][^"\']*\b'
+        r'<(div|section|article|p|li|blockquote)[^>]*class\s*=\s*["\'][^"\']*\b'
         + re.escape(cls)
         + r'\b[^"\']*["\'][^>]*>',
         re.IGNORECASE,
@@ -183,8 +210,25 @@ class Report:
 
 
 def detect_tier(html_text: str) -> str:
+    # 优先：body 上的 data-tier 属性（v0.2 模板）
     m = re.search(
-        r'tier\s*[:=]\s*["\']?(flash|medium|deep)\b', html_text, re.IGNORECASE
+        r'<body\b[^>]*\bdata-tier\s*=\s*["\'](flash|medium|deep)["\']',
+        html_text,
+        re.IGNORECASE | re.DOTALL,
+    )
+    if m:
+        return m.group(1).lower()
+    # 次优：任何 data-tier= 属性（取首个）
+    m = re.search(
+        r'\bdata-tier\s*=\s*["\'](flash|medium|deep)["\']',
+        html_text,
+        re.IGNORECASE,
+    )
+    if m:
+        return m.group(1).lower()
+    # 通用：tier=xxx 写法
+    m = re.search(
+        r'\btier\s*[:=]\s*["\']?(flash|medium|deep)\b', html_text, re.IGNORECASE
     )
     if m:
         return m.group(1).lower()
@@ -359,17 +403,32 @@ def check_ai_disclaimer(html_text: str, rep: Report) -> None:
 
 
 def check_experts(html_text: str, rep: Report) -> None:
-    # 启发式：在 disclaimer 之外找 expert 列表（li 含 strong）。这里宽松：扫全文 li 数。
-    plain = strip_tags(html_text)
-    # 先找显式 .experts 或 "推荐人" / "推荐账号" 区段
-    seg = ""
+    """启发式：找 .recommendations-list 或"推荐人"区段下的 li 数。"""
+    # 优先：直接找 .recommendations-list
     m = re.search(
-        r"(推荐人|推荐账号|推荐.{0,4}社区|experts?)[\s\S]{0,2000}",
+        r'<ul[^>]*class\s*=\s*["\'][^"\']*\brecommendations-list\b[^"\']*["\'][^>]*>(.*?)</ul>',
         html_text,
-        re.IGNORECASE,
+        re.DOTALL | re.IGNORECASE,
     )
     if m:
-        seg = m.group(0)
+        seg = m.group(1)
+        li = re.findall(r"<li\b[^>]*>(.*?)</li>", seg, re.DOTALL | re.IGNORECASE)
+        n = sum(1 for x in li if strip_tags(x).strip())
+        if n < 3:
+            rep.fail(
+                "专家推荐",
+                f"推荐人/账号/社区条目 {n} 条 < 3（在 HTML 加 ≥3 个 <li> 给真人/账号让用户去人肉验证）",
+            )
+        return
+
+    # 次选：剔除 style/script 后用关键词正则定位
+    cleaned = _SCRIPT_STYLE_RE.sub(" ", html_text)
+    m = re.search(
+        r"(推荐人|推荐账号|推荐.{0,4}社区|experts?)[\s\S]{0,3000}",
+        cleaned,
+        re.IGNORECASE,
+    )
+    seg = m.group(0) if m else ""
     li = re.findall(r"<li\b[^>]*>(.*?)</li>", seg, re.DOTALL | re.IGNORECASE)
     n = sum(1 for x in li if strip_tags(x).strip())
     if n < 3:
@@ -379,12 +438,56 @@ def check_experts(html_text: str, rep: Report) -> None:
         )
 
 
+def check_no_framework_in_headings(html_text: str, rep: Report) -> None:
+    """v0.2 新增：扫描所有 H1/H2/H3 标题文本，禁止出现分析框架名。
+    呈现是叙事，不是把"事实层/机制层/观点层/反身性"等分析框架名直接糊到标题上。
+    """
+    pattern = re.compile(r"<(h[123])\b[^>]*>(.*?)</\1>", re.DOTALL | re.IGNORECASE)
+    for m in pattern.finditer(html_text):
+        tag = m.group(1).lower()
+        inner = m.group(2)
+        text = strip_tags(inner).strip()
+        if not text:
+            continue
+        for term in HEADING_FORBIDDEN_TERMS:
+            if term in text:
+                ln = line_of(html_text, m.start())
+                rep.fail(
+                    "H2 暴露",
+                    f'line {ln}: 标题"{text}"包含分析框架名"{term}"——'
+                    f'应改为问题驱动的叙事化标题',
+                )
+                break  # 同一标题只报一次
+
+
 def check_known_unknowns(html_text: str, tier: str, rep: Report) -> None:
     floor = TIER_KU_MIN[tier]
-    # 找"已知的未知"或 known unknowns 区段
+    # 优先：找 id="known-unknowns" 节点（v0.2 旁路数据 ul）
+    m = re.search(
+        r'id\s*=\s*["\']known-unknowns["\']',
+        html_text,
+        re.IGNORECASE,
+    )
+    if m:
+        # 从该 id 起向后取 4000 字符并截到下一个 </details> / </section> / 下一个 h2
+        seg = html_text[m.end() : m.end() + 5000]
+        end = re.search(r"</details\s*>|</section\s*>|<h2\b", seg, re.IGNORECASE)
+        if end:
+            seg = seg[: end.start()]
+        li = re.findall(r"<li\b[^>]*>(.*?)</li>", seg, re.DOTALL | re.IGNORECASE)
+        n = sum(1 for x in li if strip_tags(x).strip())
+        if n < floor:
+            rep.fail(
+                "已知的未知",
+                f"已知的未知条目 {n} < 档位 {tier} 下限 {floor}（id=known-unknowns 区段下 li 数）",
+            )
+        return
+
+    # 次选：用关键词定位（剔除 style/script 后）
+    cleaned = _SCRIPT_STYLE_RE.sub(" ", html_text)
     m = re.search(
         r"(已知的未知|known\s*unknowns)[\s\S]{0,4000}",
-        html_text,
+        cleaned,
         re.IGNORECASE,
     )
     if not m:
@@ -394,8 +497,7 @@ def check_known_unknowns(html_text: str, tier: str, rep: Report) -> None:
         )
         return
     seg = m.group(0)
-    # 截到下一个 h2 / section 边界
-    end = re.search(r"<h2\b|</section>", seg[20:], re.IGNORECASE)
+    end = re.search(r"<h2\b|</section\s*>|</details\s*>", seg[20:], re.IGNORECASE)
     if end:
         seg = seg[: 20 + end.start()]
     li = re.findall(r"<li\b[^>]*>(.*?)</li>", seg, re.DOTALL | re.IGNORECASE)
@@ -418,6 +520,7 @@ def run_checks(html_text: str) -> Report:
     check_grade_table(html_text, tier, rep)
     check_three_layer_chain(html_text, rep)
     check_forbidden_terms(html_text, rep)
+    check_no_framework_in_headings(html_text, rep)
     check_ai_disclaimer(html_text, rep)
     check_experts(html_text, rep)
     check_known_unknowns(html_text, tier, rep)
