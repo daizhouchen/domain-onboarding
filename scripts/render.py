@@ -396,19 +396,25 @@ def _typo_replace_f(m: "re.Match[str]") -> str:
     )
 
 
-def _apply_typography_layers(html_text: str) -> str:
-    """对 narrative_html body（已剥离 chapter-summary）应用 6 类 pattern 转换。
+def _apply_typography_layers(html_text: str, chapter_id: str = "") -> str:
+    """对 narrative_html body（已剥离 chapter-summary）应用 typography pattern 转换。
 
-    保护策略：先把 mechanism / viewpoint / quote / transition 这些已经语义化的
-    结构块替换成 placeholder，应用 typography pattern 后再恢复——避免正则误吞
-    引文块里的 <strong>。
+    v1.2：6 类段落内层次（A 字母分组 / B 字母+数字子项 / C 中文条目 /
+    D 镜子条目 / E 叙事条目 / F 编号 unknowns）
+    v1.3 新增：
+    - G 玩家卡片（仅 chapter_id == 'players'，章节级处理）
+    - H 列表小标题（<p><strong>必读论文</strong></p> + <ul> → h5.list-heading + ul.enhanced-list）
+    - I 列表项双标签（<li>...<strong>读他能学到</strong>...<strong>盲区</strong>...</li> → dl 网格）
+    - J 关键年份徽章（<span class="year-tag">2017 年</span>，避开 strong/em/a/sup 内）
+
+    保护策略：先把 mechanism / viewpoint / quote / chapter-summary / transition 这些
+    已经语义化的结构块替换成 placeholder，应用 typography pattern 后再恢复——避免
+    正则误吞引文块里的 <strong>。Pattern J（年份）额外保护 ul/ol，避免列表内重复处理。
 
     Pattern 顺序敏感：
-    - A 必须在 B 之前（A. 比 A1. 短，但 A1.、A2. 都不会被 A 误匹配，因为 A. 后
-      没有数字）；为防万一仍把 B 放在 A 后面更保守。
-    - 实际上 A 的正则 `[A-DＡ-Ｄ]\.` 后面只允许非数字（被 `\.` 限定），所以
-      不会匹配 "A1."。
-    - F (\d+\.) 放最后，它最宽，最后兜底。
+    - G 在 A-F 之后（先识别玩家段，剥离 resilience strong，再做其它分组识别）
+    - H/I 在 G 之后（G 不接触列表，列表 pattern 互不冲突）
+    - J 最后（年份是叶级 inline 转换，需在所有结构化转换后做）
     """
     if not isinstance(html_text, str) or not html_text:
         return html_text or ""
@@ -422,7 +428,7 @@ def _apply_typography_layers(html_text: str) -> str:
 
     safe = _TYPO_PROTECT_RE.sub(_stash, html_text)
 
-    # Step 2: 按顺序应用 6 类 pattern（每个独立 try 兜底，单点失败不影响其他）
+    # Step 2: 按顺序应用 v1.2 6 类 pattern（每个独立 try 兜底，单点失败不影响其他）
     pattern_specs = [
         (_TYPO_GROUP_HEADING_V1_RE, _typo_replace_a_v1, "A1"),
         (_TYPO_GROUP_HEADING_V2_RE, _typo_replace_a_v2, "A2"),
@@ -438,9 +444,479 @@ def _apply_typography_layers(html_text: str) -> str:
         except Exception as e:  # noqa: BLE001
             warn(f"typography pattern {name} 失败：{e}（跳过该 pattern）")
 
-    # Step 3: 恢复保护块
+    # Step 3: 恢复保护块（先恢复——下面的 G/H/I/J 也要看到 mechanism/quote 才能正确分块）
     for i, p in enumerate(placeholders):
         safe = safe.replace(f"\x00PROTECT{i}\x00", p)
+
+    # Step 4: v1.3 G——玩家卡片（仅 players 章节）
+    try:
+        safe = _typography_player_cards(chapter_id, safe)
+    except Exception as e:  # noqa: BLE001
+        warn(f"typography pattern G（player-cards）失败：{e}（跳过）")
+
+    # Step 5: v1.3 H——列表小标题
+    try:
+        safe = _typography_list_heading(safe)
+    except Exception as e:  # noqa: BLE001
+        warn(f"typography pattern H（list-heading）失败：{e}（跳过）")
+
+    # Step 6: v1.3 I——列表项双标签
+    try:
+        safe = _typography_dual_tag_item(safe)
+    except Exception as e:  # noqa: BLE001
+        warn(f"typography pattern I（dual-tag-item）失败：{e}（跳过）")
+
+    # Step 7: v1.3 J——关键年份徽章（最后一步，叶级 inline 转换）
+    try:
+        safe = _typography_year_tags(safe)
+    except Exception as e:  # noqa: BLE001
+        warn(f"typography pattern J（year-tag）失败：{e}（跳过）")
+
+    return safe
+
+
+# ---------- v1.3 Pattern G · 玩家卡片 ----------
+#
+# 只对 chapter_id == 'players' 应用。算法：
+# 1. 把 narrative 拆成顶级块（<p>、<blockquote>、<figure>、<div>、<section> 等）
+# 2. 识别"玩家段开头"的两种风格：
+#    a) vec 风：<p><strong>NAME</strong> 赌的是/押的是/...
+#    b) dollar 风：<p><strong>NAME 三件套。</strong>...（全名+句号在 strong 内）
+# 3. 把"玩家段开头"到"下一个玩家段开头之前"打包成 player-card
+# 4. 玩家段内的反脆弱评分 strong（结构性脆弱 / 杠铃形 / 反脆弱 / 相对稳健 等）
+#    被剥离正文，提升为 player-card header 上的 badge
+# 5. 章首 lead 段、章末 SVG/figure/mechanism/viewpoint/chapter-summary/chapter-coda
+#    不属于任何玩家——靠"识别为玩家段开头"才进入打包
+
+# 顶级块切分（贪婪拿到完整 <tag>...</tag>）
+_BLOCK_SPLIT_RE = re.compile(
+    r'(<p\s+class="mechanism"[^>]*>.*?</p>'
+    r'|<p\s+class="chapter-summary"[^>]*>.*?</p>'
+    r'|<p\s+class="transition"[^>]*>.*?</p>'
+    r'|<p\s+class="group-lead"[^>]*>.*?</p>'
+    r'|<blockquote[^>]*>.*?</blockquote>'
+    r'|<figure[^>]*>.*?</figure>'
+    r'|<svg[^>]*>.*?</svg>'
+    r'|<ul[^>]*>.*?</ul>'
+    r'|<ol[^>]*>.*?</ol>'
+    r'|<dl[^>]*>.*?</dl>'
+    r'|<section[^>]*>.*?</section>'
+    r'|<div[^>]*>.*?</div>'
+    r'|<h[3-6][^>]*>.*?</h[3-6]>'
+    r'|<p[^>]*>.*?</p>)',
+    re.DOTALL,
+)
+
+# 玩家段开头识别——vec 风（<strong>NAME</strong> + 后面接 "赌的是/押的是/..."）
+# 名字允许含中文/英文括号注释（"Snowflake / Databricks（数据仓库压境）"）
+_PLAYER_OPEN_VEC_RE = re.compile(
+    r'^<p>\s*<strong>([^<]{2,60})</strong>\s*'
+    r'(赌的是|押的是|选的是|是这个|做的是|是这场|是从|不是一家|是当前|是这家|是这|是个|是来自)',
+    re.DOTALL,
+)
+
+# 玩家段开头识别——dollar 风（<strong>NAME...。</strong> 全名+句号都在 strong 内）
+# 名字必须以中文/字母开头，长度 2-50，最后一个字符是句号（。或 .）
+_PLAYER_OPEN_DOLLAR_RE = re.compile(
+    r'^<p>\s*<strong>([^<]{2,60}?[。\.])</strong>',
+    re.DOTALL,
+)
+
+# 反脆弱评分：从段落里抠出 strong 标签内的"评分"
+# 兼容：
+# - 裸评分："结构性脆弱" / "反脆弱" / "杠铃形结构" / "相对稳健" / "分散脆弱"
+# - 带前缀："结构判断：杠铃形" / "结构判断：USDT/USDC 反脆弱（注释）/ BTC 结构性脆弱"
+_RESILIENCE_KEYWORDS = [
+    "反脆弱", "结构性脆弱", "双向受压脆弱", "杠铃形结构", "杠铃形",
+    "相对稳健", "分散脆弱", "脆弱",
+]
+_RESILIENCE_STRONG_RE = re.compile(
+    r'<strong>([^<]*?(?:反脆弱|脆弱|杠铃|稳健)[^<]*?)</strong>',
+)
+
+
+def _classify_resilience(text: str) -> str:
+    """根据评分文本返回 CSS class（resilience-xxx）。
+    处理多评分混合（如 "USDT/USDC 反脆弱 / BTC 结构性脆弱"）：
+    取第一个匹配的关键词作为主类别。
+    """
+    if not text:
+        return "resilience-fragile"
+    # 优先级：长 > 短，避免"反脆弱"被"脆弱"先吃掉
+    if "反脆弱" in text:
+        return "resilience-antifragile"
+    if "双向受压" in text:
+        return "resilience-pressed"
+    if "分散脆弱" in text:
+        return "resilience-scattered"
+    if "结构性脆弱" in text:
+        return "resilience-fragile"
+    if "杠铃" in text:
+        return "resilience-barbell"
+    if "相对稳健" in text or "稳健" in text:
+        return "resilience-stable"
+    if "脆弱" in text:
+        return "resilience-fragile"
+    return "resilience-fragile"
+
+
+def _clean_badge_text(text: str) -> str:
+    """清洗评分文本作为 badge 显示。
+    - 去掉前缀 "结构判断：" / "结构判断:"
+    - 长文本截断（>16 字符）：取主关键词
+    """
+    t = text.strip()
+    for prefix in ("结构判断：", "结构判断:"):
+        if t.startswith(prefix):
+            t = t[len(prefix):].strip()
+    # 如果包含分隔符（/ 或 ；），太长就用第一个评分关键词
+    if len(t) > 16:
+        for kw in ["反脆弱", "结构性脆弱", "双向受压脆弱", "杠铃形结构",
+                  "杠铃形", "相对稳健", "分散脆弱", "脆弱"]:
+            if kw in t:
+                return kw
+    return t
+
+
+def _split_top_level_blocks(html: str) -> List[str]:
+    """把 narrative_html 切分成顶级块和散文本片段（顺序保留）。"""
+    if not html:
+        return []
+    out: List[str] = []
+    pos = 0
+    for m in _BLOCK_SPLIT_RE.finditer(html):
+        if m.start() > pos:
+            gap = html[pos:m.start()]
+            if gap.strip():
+                out.append(gap)
+        out.append(m.group(0))
+        pos = m.end()
+    if pos < len(html):
+        tail = html[pos:]
+        if tail.strip():
+            out.append(tail)
+    return out
+
+
+def _is_player_open(block: str) -> Optional[str]:
+    """判断块是否为玩家段开头；返回玩家名或 None。"""
+    if not block.startswith("<p>"):
+        return None
+    # 先尝试 vec 风（<strong>NAME</strong> + 后续动词）
+    m = _PLAYER_OPEN_VEC_RE.match(block)
+    if m:
+        return m.group(1).strip()
+    # 再尝试 dollar 风（<strong>NAME。</strong> 全在 strong 内）
+    m = _PLAYER_OPEN_DOLLAR_RE.match(block)
+    if m:
+        name = m.group(1).rstrip("。.").strip()
+        # 排除已经被 v1.2 处理的 "镜子一：xx" / "第一条：xx" / "叙事 A：xx" / "A. xx"
+        if re.match(r'^(镜子[一二三四五六七八九十]|第[一二三四五六七八九十]+条|叙事\s*[ABCＡＢＣ]|[A-DＡ-Ｄ]\d?\.)', name):
+            return None
+        # 排除关键词块（"机制上看"、"必读论文"等列表 lead）
+        if re.match(r'^(机制上看|必读|必跟|必看|关键|升档|建议)', name):
+            return None
+        return name
+    return None
+
+
+def _is_player_terminator(block: str) -> bool:
+    """判断块是否标志玩家段结束（章末 figure/SVG、chapter-summary、章末过渡段、
+    全局 viewpoint/mechanism 不属于任何特定玩家——但实践中 mechanism 紧跟玩家段时
+    应归属上一个玩家。这里只把 figure/svg/chapter-summary/transition 当硬终止）。
+    """
+    s = block.lstrip()
+    return (
+        s.startswith("<figure")
+        or s.startswith("<svg")
+        or '<p class="chapter-summary"' in s
+        or '<p class="transition"' in s
+    )
+
+
+def _strip_resilience_from_player(player_html: str) -> tuple:
+    """从玩家段 HTML 里抠出反脆弱评分 strong 标签，返回 (cleaned_html, badge_text)。
+    若有多个 strong 评分（罕见），取第一个；其余保留在正文（让用户看到）。
+    """
+    m = _RESILIENCE_STRONG_RE.search(player_html)
+    if not m:
+        return player_html, ""
+    badge_text = m.group(1).strip()
+    start, end = m.span()
+    before = player_html[:start]
+    after = player_html[end:]
+    # 如果 strong 后紧跟 "——"，连带删除（让评分变 badge 后正文不残留破折号）
+    after_stripped = after.lstrip()
+    if after_stripped.startswith("——"):
+        after = after_stripped[2:].lstrip()
+    elif after_stripped.startswith("--"):
+        after = after_stripped[2:].lstrip()
+    cleaned = before + after
+    return cleaned, badge_text
+
+
+def _strip_player_name_lead(player_html: str, name: str) -> str:
+    """剥离玩家段第一个 <p> 里冗余的玩家名 strong（已经在 player-header 中显示）。
+    支持两种风格：
+    - vec 风：<p><strong>NAME</strong> ...</p>（strong 后只有名字，剥掉 strong + 紧跟空格）
+    - dollar 风：<p><strong>NAME。</strong> 这是...</p>（strong 含名字+句号，全剥）
+    """
+    if not player_html or not name:
+        return player_html
+    # vec 风：<p><strong>NAME</strong>\s
+    pat_vec = re.compile(
+        r'^<p>\s*<strong>' + re.escape(name) + r'</strong>\s*',
+        re.DOTALL,
+    )
+    if pat_vec.match(player_html):
+        return pat_vec.sub('<p>', player_html, count=1)
+    # dollar 风：<p><strong>NAME。</strong>
+    name_with_period = name + "。"
+    pat_dollar = re.compile(
+        r'^<p>\s*<strong>' + re.escape(name_with_period) + r'</strong>\s*',
+        re.DOTALL,
+    )
+    if pat_dollar.match(player_html):
+        return pat_dollar.sub('<p>', player_html, count=1)
+    return player_html
+
+
+def _typography_player_cards(chapter_id: str, html: str) -> str:
+    """v1.3 Pattern G：把第 3 章玩家段平铺转成 player-card。"""
+    if chapter_id != "players":
+        return html
+    if not html:
+        return html
+
+    blocks = _split_top_level_blocks(html)
+    if not blocks:
+        return html
+
+    # 找出所有玩家段开头位置
+    open_positions: List[int] = []
+    for i, b in enumerate(blocks):
+        # _is_player_terminator 优先：figure/SVG 不是玩家段开头
+        if _is_player_terminator(b):
+            continue
+        if _is_player_open(b) is not None:
+            open_positions.append(i)
+
+    if not open_positions:
+        return html
+
+    # 玩家段范围：[start, next_start_or_terminator)
+    out: List[str] = []
+    i = 0
+    while i < len(blocks):
+        if i in open_positions:
+            name = _is_player_open(blocks[i])
+            # 找终点：下一个 open 或第一个 terminator 或末尾
+            next_idx = next((p for p in open_positions if p > i), None)
+            terminator_idx = None
+            for j in range(i + 1, len(blocks)):
+                if _is_player_terminator(blocks[j]):
+                    terminator_idx = j
+                    break
+            # 终点取较小者
+            candidates = [c for c in (next_idx, terminator_idx, len(blocks)) if c is not None]
+            end = min(candidates)
+            chunk = "".join(blocks[i:end])
+            chunk = _strip_player_name_lead(chunk, name or "")
+            cleaned_chunk, badge_text = _strip_resilience_from_player(chunk)
+            badge_html = ""
+            if badge_text:
+                cls = _classify_resilience(badge_text)
+                clean_text = _clean_badge_text(badge_text)
+                badge_html = (
+                    f'<span class="resilience-badge {cls}">{html_escape(clean_text)}</span>'
+                )
+            out.append(
+                f'<article class="player-card" data-player="{html_escape(name or "")}">\n'
+                f'  <header class="player-header">\n'
+                f'    <h4 class="player-name">{html_escape(name or "")}</h4>\n'
+                f'    {badge_html}\n'
+                f'  </header>\n'
+                f'  <div class="player-body">\n'
+                f'{cleaned_chunk}\n'
+                f'  </div>\n'
+                f'</article>'
+            )
+            i = end
+        else:
+            out.append(blocks[i])
+            i += 1
+    return "".join(out)
+
+
+def html_escape(s: str) -> str:
+    """轻量 HTML 转义（玩家名/badge 文本里只可能含中文/字母/标点，无须 quote）。"""
+    return html.escape(s or "", quote=False)
+
+
+# ---------- v1.3 Pattern H · 列表小标题 ----------
+#
+# <p><strong>必读论文（按...）。</strong></p>
+# <ul>...</ul>
+# →
+# <h5 class="list-heading">必读论文 · 按...</h5>
+# <ul class="enhanced-list">...</ul>
+
+_LIST_HEADING_RE = re.compile(
+    r'<p>\s*<strong>([必关核推升][^<（(]{1,30}?)'  # 主标题（必读/关键/核心/推荐/升档 等开头）
+    r'(?:[（(]([^<)）]{1,80})[）)])?'  # 可选括号注释
+    r'\s*[。.]?\s*</strong>\s*</p>\s*'
+    r'<ul([^>]*)>',
+    re.DOTALL,
+)
+
+
+def _list_heading_replace(m: "re.Match[str]") -> str:
+    title = (m.group(1) or "").strip().rstrip("。.")
+    note = (m.group(2) or "").strip().rstrip("。.")
+    ul_attrs = (m.group(3) or "")
+    full_title = f"{title} · {note}" if note else title
+    # 注入 enhanced-list class（如果 ul 已经有 class，append）
+    if 'class="' in ul_attrs:
+        ul_attrs = re.sub(r'class="([^"]*)"', r'class="\1 enhanced-list"', ul_attrs)
+    else:
+        ul_attrs = (ul_attrs + ' class="enhanced-list"').strip()
+        if not ul_attrs.startswith(" "):
+            ul_attrs = " " + ul_attrs
+    return (
+        f'<h5 class="list-heading">{html_escape(full_title)}</h5>\n'
+        f'<ul {ul_attrs.strip()}>'
+    )
+
+
+def _typography_list_heading(html_text: str) -> str:
+    """v1.3 Pattern H：列表前的 <p><strong>标题</strong></p> 升级为 h5.list-heading。"""
+    if not html_text:
+        return html_text
+    return _LIST_HEADING_RE.sub(_list_heading_replace, html_text)
+
+
+# ---------- v1.3 Pattern I · 列表项内双标签 ----------
+#
+# <li>主体内容<strong>读他能学到</strong>：第一段说明<strong>盲区</strong>：第二段说明</li>
+# →
+# <li class="dual-tag-item">
+#   <div class="li-main">主体内容</div>
+#   <dl class="li-tags">
+#     <dt class="tag-pos">读他能学到</dt><dd>第一段说明</dd>
+#     <dt class="tag-neg">盲区</dt><dd>第二段说明</dd>
+#   </dl>
+# </li>
+
+# 关键：用 [^<]*?(?:<(?!/?li\b)[^<]*?)*? 形式禁止跨 <li>/</li> 边界
+# 简化做法：用否定 lookahead 限制 .*? 不含 </li> 或 <li>
+_DUAL_TAG_LI_RE = re.compile(
+    r'<li>((?:(?!</li>|<li\b).)*?)'
+    r'<strong>(读他能学到|他的盲区|盲区|优势|短板|优点|缺点|强项|弱项)</strong>\s*[：:]\s*'
+    r'((?:(?!</li>|<li\b).)*?)'
+    r'<strong>(读他能学到|他的盲区|盲区|优势|短板|优点|缺点|强项|弱项)</strong>\s*[：:]\s*'
+    r'((?:(?!</li>|<li\b).)*?)'
+    r'</li>',
+    re.DOTALL,
+)
+
+# 正向标签（绿）
+_POS_TAGS = {"读他能学到", "优势", "优点", "强项"}
+# 反向标签（朱砂）
+_NEG_TAGS = {"他的盲区", "盲区", "短板", "缺点", "弱项"}
+
+
+def _dual_tag_replace(m: "re.Match[str]") -> str:
+    main = (m.group(1) or "").strip()
+    tag1, content1 = m.group(2), (m.group(3) or "").strip()
+    tag2, content2 = m.group(4), (m.group(5) or "").strip()
+    # 主体末尾的 "。" / "，" 留着，不动
+    cls1 = "tag-pos" if tag1 in _POS_TAGS else ("tag-neg" if tag1 in _NEG_TAGS else "tag-pos")
+    cls2 = "tag-pos" if tag2 in _POS_TAGS else ("tag-neg" if tag2 in _NEG_TAGS else "tag-neg")
+    # 清洗内容尾部的 "。" 不动（用户文中通常以句号收尾，保留即可）
+    return (
+        f'<li class="dual-tag-item">\n'
+        f'  <div class="li-main">{main}</div>\n'
+        f'  <dl class="li-tags">\n'
+        f'    <dt class="{cls1}">{tag1}</dt><dd>{content1}</dd>\n'
+        f'    <dt class="{cls2}">{tag2}</dt><dd>{content2}</dd>\n'
+        f'  </dl>\n'
+        f'</li>'
+    )
+
+
+def _typography_dual_tag_item(html_text: str) -> str:
+    """v1.3 Pattern I：列表项里"读他能学到/盲区"双 strong 内联升级为 dl 网格。"""
+    if not html_text:
+        return html_text
+    return _DUAL_TAG_LI_RE.sub(_dual_tag_replace, html_text)
+
+
+# ---------- v1.3 Pattern J · 关键年份徽章 ----------
+#
+# 把普通段落里 "2017 年" / "1944 年" 等 4 位数字+"年" 的串包成
+# <span class="year-tag">2017 年</span>
+#
+# 关键约束：
+# - 不在 strong / em / a / sup / cite / code / pre / time 内
+# - 不在 mechanism / quote / viewpoint / chapter-summary / chapter-coda 内
+# - 不在 ul / ol / dl 内（避免列表里的 dual-tag-item 已经处理过的内容被打扰）
+# - 已经在 fact-ref `<sup><a>[N]</a></sup>` 里的数字不动（被 sup 保护覆盖）
+# - 4 位数字范围限定 1900-2099
+
+_YEAR_RE = re.compile(r'(?<![\d])(19\d{2}|20\d{2})(\s*年)')
+
+# 不要进入这些容器的内部（预先用 placeholder 保护）
+_YEAR_GUARD_RE = re.compile(
+    r'(<strong[^>]*>.*?</strong>'
+    r'|<em[^>]*>.*?</em>'
+    r'|<a\s[^>]*>.*?</a>'
+    r'|<sup[^>]*>.*?</sup>'
+    r'|<cite[^>]*>.*?</cite>'
+    r'|<code[^>]*>.*?</code>'
+    r'|<pre[^>]*>.*?</pre>'
+    r'|<time[^>]*>.*?</time>'
+    r'|<p\s+class="mechanism"[^>]*>.*?</p>'
+    r'|<p\s+class="chapter-summary"[^>]*>.*?</p>'
+    r'|<p\s+class="transition"[^>]*>.*?</p>'
+    r'|<blockquote[^>]*>.*?</blockquote>'
+    r'|<div\s+class="chapter-coda"[^>]*>.*?</div>'
+    r'|<ul[^>]*>.*?</ul>'
+    r'|<ol[^>]*>.*?</ol>'
+    r'|<dl[^>]*>.*?</dl>'
+    r'|<svg[^>]*>.*?</svg>'
+    r'|<figure[^>]*>.*?</figure>'
+    r'|<span\s+class="year-tag"[^>]*>.*?</span>)',
+    re.DOTALL,
+)
+
+
+def _typography_year_tags(html_text: str) -> str:
+    """v1.3 Pattern J：把"2017 年"等年份串包装为 <span class="year-tag">。
+    用 placeholder 保护 strong/em/a/sup/cite/code/pre/time/mechanism/quote/viewpoint/
+    chapter-summary/chapter-coda/ul/ol/dl/svg/figure，避免误吞嵌套或重复处理。
+    """
+    if not html_text:
+        return html_text
+
+    placeholders: List[str] = []
+
+    def _stash(m: "re.Match[str]") -> str:
+        placeholders.append(m.group(0))
+        return f"\x01YEARGUARD{len(placeholders) - 1}\x01"
+
+    safe = _YEAR_GUARD_RE.sub(_stash, html_text)
+
+    # 在不被保护的散文里替换年份
+    def _year_repl(m: "re.Match[str]") -> str:
+        year = m.group(1)
+        # 范围检查（19xx / 20xx 已在 regex 里限定）
+        return f'<span class="year-tag">{year}{m.group(2)}</span>'
+
+    safe = _YEAR_RE.sub(_year_repl, safe)
+
+    # 恢复 placeholder
+    for i, p in enumerate(placeholders):
+        safe = safe.replace(f"\x01YEARGUARD{i}\x01", p)
     return safe
 
 
@@ -642,7 +1118,8 @@ def _render_chapters_html(chapters: Sequence[Any]) -> str:
             narrative = _stringify(narrative)
         body, coda = _split_summary(narrative)
         # v1.2：对 body 应用段落内层次后处理（A/B/C/D/E/F 六类 pattern）
-        body = _apply_typography_layers(body)
+        # v1.3：传入 chapter_id（仅 'players' 触发 G 玩家卡片，其它章节也用 H/I/J）
+        body = _apply_typography_layers(body, chapter_id=cid)
         # 中文编号：超过 10 章则留空（sample 固定 10 章）
         zh = ZH_NUMERAL[idx] if idx < len(ZH_NUMERAL) else str(chapter_num)
         # 关键：narrative_html 直接嵌入，不转义

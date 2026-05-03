@@ -1083,6 +1083,134 @@
     [data-theme="dark"] .group-heading .group-letter { opacity: 0.85; }
 
     /* ============================================================
+       v1.3 玩家卡片 / 列表层次 / 年份徽章
+       ============================================================ */
+    /* 玩家卡片 */
+    .player-card {
+      margin: 2em 0;
+      padding: 1.4em 1.6em 1.2em;
+      background: var(--paper);
+      border: 1px solid var(--ink-soft-very);
+      border-left: 4px solid var(--accent);
+      border-radius: 4px;
+      position: relative;
+      transition: box-shadow 0.2s;
+    }
+    .player-card:hover {
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    }
+    .player-card .player-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin: 0 0 0.8em;
+      padding-bottom: 0.5em;
+      border-bottom: 1px dashed var(--accent-soft);
+      gap: 0.8em;
+    }
+    .player-card .player-name {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin: 0;
+      letter-spacing: 0.02em;
+      line-height: 1.3;
+    }
+    .player-card .resilience-badge {
+      display: inline-block;
+      padding: 0.2em 0.7em;
+      border-radius: 2px;
+      font-size: 0.78em;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* 反脆弱评分各类 badge 配色 */
+    .resilience-antifragile { background: #5b8a3e; color: #fff; }
+    .resilience-stable      { background: #6b7a8a; color: #fff; }
+    .resilience-barbell     { background: #b08d40; color: #fff; }
+    .resilience-fragile     { background: var(--accent); color: var(--paper); }
+    .resilience-pressed     { background: #8c2d1f; color: #fff; }
+    .resilience-scattered   { background: #9a6b6b; color: #fff; }
+
+    /* 玩家正文 */
+    .player-card .player-body p {
+      margin: 0.6em 0;
+    }
+    .player-card .player-body blockquote.quote {
+      margin: 1em 0 1em 0.5em;
+    }
+
+    /* 列表小标题 */
+    .list-heading {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--ink);
+      margin: 1.6em 0 0.6em;
+      padding-bottom: 0.3em;
+      border-bottom: 1px dashed var(--accent-soft);
+      letter-spacing: 0.02em;
+      line-height: 1.5;
+    }
+    .enhanced-list {
+      margin: 0.5em 0 1.5em 0;
+      padding-left: 1.4em;
+    }
+    .enhanced-list > li {
+      margin-bottom: 0.9em;
+      line-height: 1.7;
+    }
+
+    /* 列表项双标签 */
+    .dual-tag-item .li-main {
+      margin-bottom: 0.4em;
+    }
+    .dual-tag-item .li-tags {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.3em 0.7em;
+      margin: 0.4em 0 0 0.3em;
+      padding: 0.4em 0.7em;
+      background: var(--mechanism-bg);
+      border-left: 2px solid var(--accent-soft);
+      border-radius: 2px;
+      font-size: 0.93em;
+    }
+    .dual-tag-item .li-tags dt {
+      font-weight: 600;
+      color: var(--accent);
+      white-space: nowrap;
+    }
+    .dual-tag-item .li-tags dt.tag-pos { color: #5b8a3e; }
+    .dual-tag-item .li-tags dt.tag-neg { color: var(--accent); }
+    .dual-tag-item .li-tags dd {
+      margin: 0;
+      color: var(--ink);
+    }
+
+    /* 关键年份徽章 */
+    .year-tag {
+      display: inline-block;
+      padding: 0.05em 0.4em;
+      background: var(--accent-bg);
+      color: var(--accent);
+      border-radius: 2px;
+      font-family: var(--mono);
+      font-size: 0.92em;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+
+    /* 暗色模式适配 */
+    [data-theme="dark"] .player-card { background: rgba(255, 107, 91, 0.04); }
+    [data-theme="dark"] .resilience-antifragile { background: #6ba646; }
+    [data-theme="dark"] .year-tag { background: rgba(255, 107, 91, 0.15); }
+    [data-theme="dark"] .dual-tag-item .li-tags dt.tag-pos { color: #8ec563; }
+
+    /* ============================================================
        #13 响应式 · 三档断点
        ============================================================ */
     @media (max-width: 1024px) {
@@ -1132,6 +1260,17 @@
       .mirror-block, .narrative-block { padding: 0.75em 1em; }
       .unknown-item { padding-left: 2.4em; }
       .unknown-item::before { width: 1.7em; height: 1.7em; font-size: 0.8em; }
+      /* v1.3 响应式 */
+      .player-card { padding: 1em 1.1em; margin: 1.4em 0; }
+      .player-card .player-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.4em;
+      }
+      .player-card .player-name { font-size: 1.2rem; }
+      .list-heading { font-size: 1rem; }
+      .dual-tag-item .li-tags { grid-template-columns: 1fr; gap: 0.1em; }
+      .dual-tag-item .li-tags dt { margin-top: 0.3em; }
     }
 
     @media (max-width: 480px) {
@@ -1237,6 +1376,38 @@
       }
       .unknown-item { page-break-inside: avoid; }
       .unknown-item::before { background: #444 !important; color: #fff !important; }
+
+      /* v1.3 玩家卡片 / 列表层次 / 年份徽章 打印 */
+      .player-card {
+        background: none !important;
+        box-shadow: none !important;
+        page-break-inside: avoid;
+        border-color: #888 !important;
+        border-left-color: #444 !important;
+      }
+      .player-card .player-name { color: #000 !important; }
+      .player-card .player-header { border-color: #888 !important; }
+      .resilience-badge {
+        background: #888 !important;
+        color: #fff !important;
+        border: 1px solid #555;
+      }
+      .list-heading {
+        color: #000 !important;
+        border-color: #888 !important;
+        page-break-after: avoid;
+      }
+      .dual-tag-item .li-tags {
+        background: none !important;
+        border-color: #888 !important;
+      }
+      .dual-tag-item .li-tags dt.tag-pos,
+      .dual-tag-item .li-tags dt.tag-neg { color: #444 !important; }
+      .year-tag {
+        background: none !important;
+        color: #000 !important;
+        border: 1px solid #888;
+      }
     }
   </style>
 </head>
