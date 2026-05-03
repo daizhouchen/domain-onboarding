@@ -1,0 +1,69 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+env/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+
+# --- macOS ---
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# --- Editors / IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+*~
+.project
+.settings/
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+
+# --- 临时输出 / 工作区 ---
+workspace/
+output/
+tmp/
+*.tmp
+*.html.bak
+*.bak
+
+# --- skill 打包产物 ---
+*.skill
+
+# --- evals 测试产物（保留 evals.json 本身）---
+evals/iteration-*/
+evals/workspace/
+evals/output/
+evals/runs/
+
+# --- 环境 / 密钥 ---
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# --- 日志 ---
+*.log
+logs/

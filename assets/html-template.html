@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="generator" content="domain-onboarding" />
+  <meta name="description" content="{{domain_name}} · 领域速通 · {{cutoff_date}}" />
+  <meta name="robots" content="noindex" />
+  <title>{{domain_name}} · 领域速通</title>
+
+  <style>
+    /* ============================================================
+       CSS 变量 · 主题切换
+       ============================================================ */
+    :root {
+      --bg:           #faf7f2;        /* 米白 */
+      --bg-soft:      #f1ece2;        /* 米白·暗 */
+      --ink:          #1a1a1a;        /* 墨黑 */
+      --ink-soft:     #6b6968;        /* 章节灰 */
+      --ink-faint:    #a8a39c;        /* 辅助灰 */
+      --accent:       #c0392b;        /* 朱砂 */
+      --accent-soft:  #d96250;        /* 朱砂·浅 */
+      --rule:         #d6cfc1;        /* 分隔线 */
+      --code-bg:      #ede7d8;        /* 等宽底色 */
+      --hl:           #f5e6c8;        /* 标黄 */
+      --grade-a:      #5a7a4f;
+      --grade-b:      #c0392b;
+      --grade-c:      #b88a3a;
+      --grade-d:      #6b6968;
+
+      --serif: 'Songti SC', 'Source Han Serif SC', 'Noto Serif CJK SC', 'STSong', 'SimSun', serif;
+      --mono:  'Sarasa Mono SC', 'JetBrains Mono', 'Cascadia Mono', 'Menlo', monospace;
+
+      --max-w: 720px;
+      --gutter: 1.6rem;
+    }
+
+    [data-theme="dark"] {
+      --bg:           #1a1a1a;
+      --bg-soft:      #232323;
+      --ink:          #e8e6e1;
+      --ink-soft:     #a8a39c;
+      --ink-faint:    #6b6968;
+      --accent:       #e74c3c;
+      --accent-soft:  #f08272;
+      --rule:         #3a3937;
+      --code-bg:      #2a2a28;
+      --hl:           #4a3f25;
+      --grade-a:      #88a87c;
+      --grade-b:      #e74c3c;
+      --grade-c:      #d4a960;
+      --grade-d:      #a8a39c;
+    }
+
+    /* ============================================================
+       基础排版
+       ============================================================ */
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--serif);
+      font-size: 17px;
+      line-height: 1.8;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+
+    main {
+      max-width: var(--max-w);
+      margin: 0 auto;
+      padding: 2.5rem var(--gutter) 6rem;
+    }
+
+    p { margin: 0 0 1.5em; }
+
+    h1, h2, h3, h4 {
+      font-family: var(--serif);
+      font-weight: 600;
+      color: var(--ink);
+      line-height: 1.4;
+    }
+
+    h1 {
+      font-size: 2.4rem;
+      margin: 0 0 0.4em;
+      letter-spacing: 0.02em;
+    }
+
+    h2 {
+      font-size: 1.6rem;
+      margin: 3rem 0 1.2em;
+      padding-bottom: 0.4em;
+      border-bottom: 1px solid var(--rule);
+      color: var(--accent);
+    }
+
+    h3 {
+      font-size: 1.2rem;
+      margin: 2rem 0 0.8em;
+      color: var(--ink);
+    }
+
+    h4 {
+      font-size: 1.05rem;
+      margin: 1.4rem 0 0.6em;
+      color: var(--ink-soft);
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+      border-bottom: 1px solid var(--accent-soft);
+      transition: opacity 0.2s;
+    }
+    a:hover { opacity: 0.7; }
+
+    em { font-style: italic; color: var(--ink-soft); }
+    strong { font-weight: 600; }
+
+    code, pre, .mono {
+      font-family: var(--mono);
+      font-size: 0.92em;
+    }
+    code {
+      background: var(--code-bg);
+      padding: 0.1em 0.4em;
+      border-radius: 2px;
+    }
+    pre {
+      background: var(--code-bg);
+      padding: 1rem 1.2rem;
+      border-left: 3px solid var(--accent);
+      border-radius: 2px;
+      overflow-x: auto;
+      line-height: 1.6;
+      margin: 1.5em 0;
+    }
+    pre code { background: transparent; padding: 0; }
+
+    blockquote {
+      margin: 1.5em 0;
+      padding: 0.4em 1.2em;
+      border-left: 3px solid var(--ink-soft);
+      color: var(--ink-soft);
+      font-style: italic;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5em 0;
+      font-size: 0.95em;
+    }
+    th, td {
+      padding: 0.6em 0.8em;
+      text-align: left;
+      border-bottom: 1px solid var(--rule);
+    }
+    th {
+      font-weight: 600;
+      color: var(--accent);
+      border-bottom: 2px solid var(--rule);
+    }
+    tr:hover td { background: var(--bg-soft); }
+
+    ul, ol { padding-left: 1.6em; margin: 0 0 1.5em; }
+    li { margin-bottom: 0.4em; }
+
+    hr {
+      border: none;
+      height: 1px;
+      background: var(--rule);
+      margin: 3em 0;
+    }
+
+    ::selection {
+      background: var(--accent);
+      color: var(--bg);
+    }
+
+    /* ============================================================
+       水墨横线（章节分隔 SVG）
+       ============================================================ */
+    .ink-rule {
+      display: block;
+      width: 100%;
+      max-width: 360px;
+      margin: 2.5em auto;
+      opacity: 0.55;
+    }
+    .ink-rule path { stroke: var(--ink-soft); fill: none; }
+
+    /* ============================================================
+       顶部 Hero
+       ============================================================ */
+    .hero {
+      padding: 1.5em 0 2em;
+      border-bottom: 1px solid var(--rule);
+      margin-bottom: 2.5em;
+    }
+    .hero .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.2em;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      color: var(--ink-soft);
+      margin: 0 0 0.8em;
+    }
+    .hero .meta-row span::before { content: '· '; color: var(--ink-faint); }
+    .hero .meta-row span:first-child::before { content: ''; }
+
+    .hero .thesis {
+      font-size: 1.15rem;
+      line-height: 1.7;
+      color: var(--ink);
+      margin: 1em 0 1.4em;
+      padding: 0.8em 1em;
+      border-left: 3px solid var(--accent);
+      background: var(--bg-soft);
+    }
+    .hero .thesis::before {
+      content: '记忆抓手 · ';
+      font-family: var(--mono);
+      font-size: 0.78em;
+      color: var(--accent);
+      letter-spacing: 0.1em;
+    }
+
+    /* 来源占比饼图 */
+    .grade-overview {
+      display: flex;
+      align-items: center;
+      gap: 1.4em;
+      margin: 1.2em 0 0;
+      padding: 0.8em 0;
+    }
+    .grade-overview svg { flex-shrink: 0; }
+    .grade-overview .legend {
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      line-height: 1.7;
+      color: var(--ink-soft);
+    }
+    .grade-overview .legend .swatch {
+      display: inline-block;
+      width: 0.7em;
+      height: 0.7em;
+      margin-right: 0.4em;
+      vertical-align: middle;
+    }
+
+    /* ============================================================
+       档位切换器
+       ============================================================ */
+    .tier-bar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--bg);
+      border-bottom: 1px solid var(--rule);
+      padding: 0.6em 0;
+      margin: 0 calc(-1 * var(--gutter)) 1.5em;
+      padding-left: var(--gutter);
+      padding-right: var(--gutter);
+      display: flex;
+      align-items: center;
+      gap: 0.5em;
+      flex-wrap: wrap;
+    }
+    .tier-bar .label {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      color: var(--ink-faint);
+      letter-spacing: 0.1em;
+      margin-right: 0.4em;
+    }
+    .tier-btn {
+      font-family: var(--serif);
+      font-size: 0.92rem;
+      padding: 0.35em 0.9em;
+      background: transparent;
+      color: var(--ink-soft);
+      border: 1px solid var(--rule);
+      border-radius: 2px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tier-btn:hover { color: var(--ink); border-color: var(--ink-soft); }
+    .tier-btn.active {
+      background: var(--accent);
+      color: var(--bg);
+      border-color: var(--accent);
+    }
+    .tier-btn .icon { margin-right: 0.3em; }
+
+    .theme-btn {
+      margin-left: auto;
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      background: transparent;
+      color: var(--ink-soft);
+      border: 1px solid var(--rule);
+      padding: 0.35em 0.7em;
+      border-radius: 2px;
+      cursor: pointer;
+    }
+    .theme-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+    /* ============================================================
+       档位可见性控制
+       核心：body data-tier 控制哪些块显示
+       ============================================================ */
+    body[data-tier="flash"]  .tier-medium,
+    body[data-tier="flash"]  .tier-deep,
+    body[data-tier="medium"] .tier-deep {
+      display: none;
+    }
+
+    /* 档位差异化视觉提示（精研有副线、深研有主线） */
+    .tier-medium::before {
+      content: '精研 ⊕';
+      display: block;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--ink-faint);
+      letter-spacing: 0.18em;
+      margin-bottom: 0.3em;
+    }
+    .tier-deep::before {
+      content: '深研 ⊛';
+      display: block;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--accent);
+      letter-spacing: 0.18em;
+      margin-bottom: 0.3em;
+    }
+
+    /* ============================================================
+       事实锚点
+       ============================================================ */
+    .fact-anchor {
+      font-family: var(--mono);
+      font-size: 0.78em;
+      color: var(--accent);
+      vertical-align: super;
+      cursor: pointer;
+      text-decoration: none;
+      border: none;
+      padding: 0 0.15em;
+    }
+    .fact-anchor:hover { background: var(--hl); }
+
+    /* 来源等级徽章 */
+    .grade {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 0.72em;
+      padding: 0.05em 0.4em;
+      border-radius: 2px;
+      vertical-align: middle;
+      margin-left: 0.3em;
+      letter-spacing: 0.05em;
+    }
+    .grade-a { background: var(--grade-a); color: #fff; }
+    .grade-b { background: var(--grade-b); color: #fff; }
+    .grade-c { background: var(--grade-c); color: #fff; }
+    .grade-d { background: var(--grade-d); color: #fff; }
+
+    /* ============================================================
+       骨架五件套 section
+       ============================================================ */
+    .skeleton-section {
+      margin: 2.5em 0;
+    }
+    .skeleton-section .section-num {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      color: var(--ink-faint);
+      letter-spacing: 0.18em;
+    }
+
+    /* ============================================================
+       自检题（折叠）
+       ============================================================ */
+    details.self-check {
+      margin: 1em 0;
+      padding: 0.8em 1.2em;
+      background: var(--bg-soft);
+      border-left: 3px solid var(--accent-soft);
+      border-radius: 2px;
+    }
+    details.self-check summary {
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--ink);
+      list-style: none;
+      outline: none;
+    }
+    details.self-check summary::-webkit-details-marker { display: none; }
+    details.self-check summary::before {
+      content: '▸ ';
+      color: var(--accent);
+      transition: transform 0.2s;
+      display: inline-block;
+    }
+    details.self-check[open] summary::before {
+      content: '▾ ';
+    }
+    details.self-check .answer {
+      margin-top: 0.8em;
+      padding-top: 0.8em;
+      border-top: 1px dashed var(--rule);
+      color: var(--ink-soft);
+    }
+
+    /* ============================================================
+       Disclaimer
+       ============================================================ */
+    .disclaimer {
+      margin: 3em 0 1em;
+      padding: 1.2em 1.4em;
+      background: var(--bg-soft);
+      border: 1px solid var(--rule);
+      border-left: 3px solid var(--ink-soft);
+      font-size: 0.92em;
+      color: var(--ink-soft);
+      line-height: 1.7;
+    }
+    .disclaimer h3 {
+      margin-top: 0;
+      color: var(--ink);
+      font-size: 1rem;
+      letter-spacing: 0.05em;
+    }
+    .disclaimer .label {
+      font-family: var(--mono);
+      font-size: 0.78em;
+      color: var(--accent);
+      letter-spacing: 0.12em;
+    }
+
+    /* ============================================================
+       未知边界清单
+       ============================================================ */
+    .unknowns-list {
+      list-style: none;
+      padding: 0;
+    }
+    .unknowns-list li {
+      padding: 0.6em 0 0.6em 2em;
+      position: relative;
+      border-bottom: 1px dashed var(--rule);
+    }
+    .unknowns-list li::before {
+      content: '?';
+      font-family: var(--mono);
+      font-weight: 600;
+      color: var(--accent);
+      position: absolute;
+      left: 0;
+      top: 0.6em;
+    }
+
+    /* ============================================================
+       响应式
+       ============================================================ */
+    @media (max-width: 640px) {
+      :root { --gutter: 1.2rem; }
+      body { font-size: 16px; }
+      h1 { font-size: 1.9rem; }
+      h2 { font-size: 1.35rem; }
+      .hero .thesis { font-size: 1.05rem; }
+      .grade-overview { flex-direction: column; align-items: flex-start; gap: 0.6em; }
+      .tier-bar { gap: 0.3em; padding: 0.5em var(--gutter); }
+      .tier-btn { font-size: 0.85rem; padding: 0.3em 0.6em; }
+      .theme-btn { margin-left: 0; }
+    }
+
+    /* ============================================================
+       打印优化（深研 A4）
+       ============================================================ */
+    @media print {
+      .tier-bar, .theme-btn { display: none !important; }
+      body[data-tier="flash"]  .tier-medium,
+      body[data-tier="flash"]  .tier-deep,
+      body[data-tier="medium"] .tier-deep { display: block !important; }
+      body { background: #fff; color: #000; font-size: 11pt; }
+      h2 { page-break-after: avoid; }
+      .skeleton-section { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+
+<body data-tier="medium">
+
+  <!-- 档位 / 主题 切换栏 -->
+  <nav class="tier-bar" role="navigation" aria-label="档位切换">
+    <span class="label">档位</span>
+    <button class="tier-btn" data-tier="flash"  type="button"><span class="icon">⚡</span>闪研</button>
+    <button class="tier-btn active" data-tier="medium" type="button"><span class="icon">📖</span>精研</button>
+    <button class="tier-btn" data-tier="deep"   type="button"><span class="icon">🔬</span>深研</button>
+    <button class="theme-btn" id="theme-toggle" type="button" aria-label="切换主题">夜读</button>
+  </nav>
+
+  <main>
+
+    <!-- =======================================================
+         顶部 Hero
+         ======================================================= -->
+    <header class="hero">
+      <h1>{{domain_name}}</h1>
+      <div class="meta-row">
+        <span>领域速通 · {{tier_label}}</span>
+        <span>cutoff {{cutoff_date}}</span>
+        <span>事实锚点 {{fact_count}}</span>
+        <span>预计阅读 {{reading_time}}</span>
+      </div>
+
+      <div class="thesis">{{thesis_one_liner}}</div>
+
+      <!-- 来源分级总览（SVG 饼图，由 render.py 注入比例）-->
+      <div class="grade-overview" aria-label="来源等级占比">
+        {{{grade_pie_svg}}}
+        <div class="legend">
+          <div><span class="swatch" style="background:var(--grade-a)"></span>A 一手 {{grade_a_pct}}</div>
+          <div><span class="swatch" style="background:var(--grade-b)"></span>B 深度二手 {{grade_b_pct}}</div>
+          <div><span class="swatch" style="background:var(--grade-c)"></span>C 摘编 {{grade_c_pct}}</div>
+          <div><span class="swatch" style="background:var(--grade-d)"></span>D 道听途说 {{grade_d_pct}}</div>
+        </div>
+      </div>
+      {{{source_grading_table_html}}}
+    </header>
+
+    <!-- =======================================================
+         水墨分隔（SVG·章节分割）
+         ======================================================= -->
+    <svg class="ink-rule" viewBox="0 0 360 14" aria-hidden="true">
+      <path d="M0 7 Q 30 4 60 7 T 120 7 T 180 7 T 240 7 T 300 7 T 360 7" stroke-width="0.8"/>
+      <path d="M170 4 Q 178 1 186 4" stroke-width="1.2"/>
+      <path d="M174 10 Q 180 13 186 10" stroke-width="1.2"/>
+    </svg>
+
+    <!-- =======================================================
+         骨架五件套
+         ======================================================= -->
+
+    <!-- 1. 核心概念图 -->
+    <section class="skeleton-section tier-flash" id="concept-map">
+      <div class="section-num">骨架 · 一</div>
+      <h2>核心概念图</h2>
+      {{{concepts_html}}}
+    </section>
+
+    <!-- 2. 玩家地图 -->
+    <section class="skeleton-section tier-flash" id="player-map">
+      <div class="section-num">骨架 · 二</div>
+      <h2>玩家地图</h2>
+      {{{players_html}}}
+    </section>
+
+    <!-- 3. 时间轴 -->
+    <section class="skeleton-section tier-flash" id="timeline">
+      <div class="section-num">骨架 · 三</div>
+      <h2>时间轴</h2>
+      {{{timeline_html}}}
+    </section>
+
+    <!-- 4. 矛盾结构 -->
+    <section class="skeleton-section tier-flash" id="tensions">
+      <div class="section-num">骨架 · 四</div>
+      <h2>矛盾结构</h2>
+      {{{tensions_html}}}
+    </section>
+
+    <!-- 5. 学习路径 -->
+    <section class="skeleton-section tier-flash" id="learning-path">
+      <div class="section-num">骨架 · 五</div>
+      <h2>学习路径</h2>
+      {{{learning_path_html}}}
+    </section>
+
+    <svg class="ink-rule" viewBox="0 0 360 14" aria-hidden="true">
+      <path d="M0 7 Q 30 4 60 7 T 120 7 T 180 7 T 240 7 T 300 7 T 360 7" stroke-width="0.8"/>
+      <circle cx="180" cy="7" r="2" fill="var(--ink-soft)" stroke="none"/>
+    </svg>
+
+    <!-- =======================================================
+         三层证据链
+         （事实/机制/观点的分层渲染区，每条都标 fact-anchor IDs）
+         ======================================================= -->
+    <section class="tier-flash" id="evidence-chain">
+      <h2>三层证据链 · 事实 → 机制 → 观点</h2>
+      <p>下方每一条机制陈述配 ≥3 个事实锚点；每一条观点陈述配反例事实或证伪条件。锚点编号 fact[N] 在末尾"来源完整列表"可定位。</p>
+
+      <h3>事实层</h3>
+      <div class="facts-container tier-flash">
+      {{{facts_html}}}
+      </div>
+
+      <h3>机制层</h3>
+      <div class="mechanisms-container tier-flash">
+      {{{mechanisms_html}}}
+      </div>
+
+      <h3>观点层</h3>
+      <div class="viewpoints-container tier-flash">
+      {{{viewpoints_html}}}
+      </div>
+    </section>
+
+    <!-- =======================================================
+         反身性章节（精研+）
+         ======================================================= -->
+    <section class="tier-medium" id="reflexivity">
+      <h2>反身性 · 主流叙事 vs 失效条件</h2>
+      <p>这领域当前的"主流叙事"是什么？谁在传播、为什么传播？什么情况下叙事会反转？</p>
+      {{{reflexivity_html}}}
+    </section>
+
+    <!-- 行业认知误区（精研+）-->
+    <section class="tier-medium" id="misconceptions">
+      <h2>认知误区 · 圈外误解 / 圈内盲区</h2>
+      {{{misconceptions_html}}}
+    </section>
+
+    <!-- =======================================================
+         结构层（深研）
+         ======================================================= -->
+    <section class="tier-deep" id="structure-layer">
+      <h2>结构层 · 为什么必须这样</h2>
+      <p>哪些约束是 reality-shaping 的？换掉哪些条件这领域的形态会完全不同？</p>
+      {{{structure_html}}}
+    </section>
+
+    <!-- =======================================================
+         范式层（深研）
+         ======================================================= -->
+    <section class="tier-deep" id="paradigm-layer">
+      <h2>范式层 · 当前处于何种范式时期</h2>
+      <p>领域的"硬核"是什么？异端在哪？范式切换的信号是什么？</p>
+      {{{paradigm_html}}}
+    </section>
+
+    <!-- =======================================================
+         跨领域同构（深研）
+         ======================================================= -->
+    <section class="tier-deep" id="isomorphism">
+      <h2>跨领域同构 · 哪些历史/邻接领域可类比</h2>
+      <p>同构案例 ≥2 个，每个案例必须给"同构点"和"反同构点"——只取其同、不见其异是廉价类比。</p>
+      {{{isomorphism_html}}}
+    </section>
+
+    <svg class="ink-rule" viewBox="0 0 360 14" aria-hidden="true">
+      <path d="M0 7 Q 60 1 120 7 T 240 7 T 360 7" stroke-width="0.8"/>
+    </svg>
+
+    <!-- =======================================================
+         未知边界清单（必出）
+         ======================================================= -->
+    <section id="known-unknowns">
+      <h2>已知的未知 · Known Unknowns</h2>
+      <p>这是模型当前 cutoff 不掌握、或领域内本身没有共识的问题清单。回答这些问题需要去找一手来源 / 圈内人。</p>
+      {{{known_unknowns_html}}}
+    </section>
+
+    <!-- =======================================================
+         自检题（深研）
+         ======================================================= -->
+    <section class="tier-deep" id="self-check">
+      <h2>自检题 · 读完测自己</h2>
+      <p>读完后能用自己的话答出下面任一题，才算入门。点击展开参考答案。</p>
+      {{{self_check_html}}}
+    </section>
+
+    <svg class="ink-rule" viewBox="0 0 360 14" aria-hidden="true">
+      <path d="M0 7 Q 30 4 60 7 T 120 7 T 180 7 T 240 7 T 300 7 T 360 7" stroke-width="0.8"/>
+    </svg>
+
+    <!-- =======================================================
+         AI 视角局限性 disclaimer（必出 · 强制）
+         ======================================================= -->
+    <section class="disclaimer" id="ai-disclaimer">
+      <div class="label">AI 视角局限性 · 必读</div>
+      <h3>这份速通的边界</h3>
+      <p>本页由 AI 模型基于训练数据 + 公开来源生成，cutoff 日期 <strong>{{cutoff_date}}</strong>。这意味着：</p>
+      <ul>
+        <li>cutoff 之后的事件、融资、监管变化、人事变动、产品发布——本页一概不掌握。请用户自行核验最新情况。</li>
+        <li>AI 模型本身是"主流叙事"的载体——训练数据里行业自媒体多于一手财报、成功故事多于失败复盘、投资人语言渗透各行各业。本页已尽量对照反例事实，但仍可能有共识盲区。</li>
+        <li>本领域内**圈内人才知道的"局内常识"**有可能未被任何文本数据捕获——本页用"圈内 / 圈外认知差"章节尽量呈现，但缺漏不可避免。</li>
+        <li>所有"观点层"判断都配了证伪条件——读者应将其作为可被打脸的假设、不是真理。</li>
+      </ul>
+      {{{ai_disclaimer_extra_html}}}
+    </section>
+
+    <!-- =======================================================
+         来源完整列表 + 推荐人/账号/会议
+         ======================================================= -->
+    <section id="sources">
+      <h2>来源 · Sources</h2>
+      <h3>事实锚点完整列表</h3>
+      {{{sources_list_html}}}
+
+      <h3>推荐人 / 账号 / 会议 / 社区</h3>
+      <p>用户应去人肉验证这些一手发声者，本页列举只是入口。</p>
+      {{{recommendations_html}}}
+    </section>
+
+    <!-- =======================================================
+         页脚
+         ======================================================= -->
+    <footer style="margin-top: 4em; padding-top: 1.5em; border-top: 1px solid var(--rule); font-family: var(--mono); font-size: 0.82rem; color: var(--ink-faint); text-align: center;">
+      <div>{{domain_name}} · 领域速通 · 生成于 {{generation_date}}</div>
+      <div style="margin-top: 0.4em;">single-file · zero CDN · offline-ready</div>
+    </footer>
+
+  </main>
+
+  <!-- =======================================================
+       JavaScript · 档位 / 主题 / 锚点
+       ======================================================= -->
+  <script>
+    (function () {
+      'use strict';
+
+      const body = document.body;
+      const STORAGE_TIER = 'do-tier';
+      const STORAGE_THEME = 'do-theme';
+
+      /* ----------- 档位切换 ----------- */
+      const tierButtons = document.querySelectorAll('.tier-btn');
+
+      function setTier(tier) {
+        body.dataset.tier = tier;
+        tierButtons.forEach(function (btn) {
+          btn.classList.toggle('active', btn.dataset.tier === tier);
+        });
+        try { localStorage.setItem(STORAGE_TIER, tier); } catch (e) {}
+      }
+
+      tierButtons.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          setTier(btn.dataset.tier);
+        });
+      });
+
+      /* ----------- 主题切换 ----------- */
+      const themeBtn = document.getElementById('theme-toggle');
+
+      function setTheme(theme) {
+        if (theme === 'dark') {
+          document.documentElement.setAttribute('data-theme', 'dark');
+          themeBtn.textContent = '日读';
+        } else {
+          document.documentElement.removeAttribute('data-theme');
+          themeBtn.textContent = '夜读';
+        }
+        try { localStorage.setItem(STORAGE_THEME, theme); } catch (e) {}
+      }
+
+      themeBtn.addEventListener('click', function () {
+        const current = document.documentElement.getAttribute('data-theme');
+        setTheme(current === 'dark' ? 'light' : 'dark');
+      });
+
+      /* ----------- 恢复偏好 ----------- */
+      try {
+        const savedTier = localStorage.getItem(STORAGE_TIER);
+        if (savedTier) setTier(savedTier);
+
+        const savedTheme = localStorage.getItem(STORAGE_THEME);
+        if (savedTheme) {
+          setTheme(savedTheme);
+        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          setTheme('dark');
+        }
+      } catch (e) { /* localStorage disabled */ }
+
+      /* ----------- 锚点跳转高亮 ----------- */
+      document.addEventListener('click', function (e) {
+        const target = e.target;
+        if (target.classList && target.classList.contains('fact-anchor')) {
+          const href = target.getAttribute('href');
+          if (href && href.charAt(0) === '#') {
+            e.preventDefault();
+            const el = document.querySelector(href);
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              el.style.transition = 'background 0.3s';
+              const orig = el.style.background;
+              el.style.background = 'var(--hl)';
+              setTimeout(function () { el.style.background = orig; }, 1500);
+            }
+          }
+        }
+      });
+
+      /* ----------- 自检题 details 全展开 / 全收起 快捷 ----------- */
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'e' && e.altKey) {
+          document.querySelectorAll('details.self-check').forEach(function (d) { d.open = true; });
+        } else if (e.key === 'c' && e.altKey) {
+          document.querySelectorAll('details.self-check').forEach(function (d) { d.open = false; });
+        }
+      });
+
+    })();
+  </script>
+
+</body>
+</html>
