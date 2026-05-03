@@ -5,19 +5,14 @@ visual_check.py — 视觉闸门（domain-onboarding skill）
 
 扫描 render.py 产出的单文件 HTML，校验视觉/结构侧硬约束。
 
-检查项
-1. 三档差异化比例
-   - 闪研字数 = .tier-flash 内容
-   - 精研字数 = .tier-flash + .tier-medium 内容（嵌套）
-   - 深研字数 = 全部三档（嵌套）
-   - 精研 ≥ 1.3× 闪研；深研 ≥ 1.5× 精研
-2. 零 CDN：所有 src/href 中不允许出现 http(s):// 外链（anchor #xxx 与 mailto:/data: 例外）
-3. <meta name="viewport" ... width=device-width>
-4. <html lang="zh-CN">
-5. 暗色模式：含 prefers-color-scheme: dark 或 [data-theme="dark"]
-6. 打印优化：含 @page 或 @media print
-7. inline SVG 数量在 [1, 30]
-8. 反 AI slop 视觉清单
+检查项（v1.0：单档深度产物 · 三档检查已删）
+1. 零 CDN：所有 src/href 中不允许出现 http(s):// 外链（anchor #xxx 与 mailto:/data: 例外）
+2. <meta name="viewport" ... width=device-width>
+3. <html lang="zh-CN">
+4. 暗色模式：含 prefers-color-scheme: dark 或 [data-theme="dark"]
+5. 打印优化：含 @page 或 @media print
+6. inline SVG 数量在 [1, 30]
+7. 反 AI slop 视觉清单
    - 不能有 linear-gradient 含 purple 主色
    - .h1/.h2 不能 text-transform: uppercase
    - box-shadow 出现次数 ≤ 5
@@ -127,79 +122,6 @@ class Report:
 
 
 # ---------- 检查项 ----------
-
-def _detect_tier(html: str) -> str:
-    """从 HTML 中识别 tier 等级（默认 medium）。
-    优先匹配 <body data-tier="..."> 上的实际属性，避免被 CSS 选择器
-    body[data-tier="flash"] 这种规则干扰。
-    """
-    m = re.search(
-        r'<body\b[^>]*\bdata-tier\s*=\s*["\'](flash|medium|deep)["\']',
-        html,
-        re.IGNORECASE | re.DOTALL,
-    )
-    if m:
-        return m.group(1).lower()
-    m = re.search(
-        r'data-tier\s*=\s*["\'](flash|medium|deep)["\']', html, re.IGNORECASE
-    )
-    if m:
-        return m.group(1).lower()
-    m = re.search(
-        r'\btier\s*[:=]\s*["\']?(flash|medium|deep)\b', html, re.IGNORECASE
-    )
-    if m:
-        return m.group(1).lower()
-    return "medium"
-
-
-def check_tier_word_ratios(html: str, rep: Report) -> None:
-    flash_blocks = get_blocks(html, "tier-flash")
-    medium_blocks = get_blocks(html, "tier-medium")
-    deep_blocks = get_blocks(html, "tier-deep")
-
-    if not flash_blocks:
-        rep.fail("三档结构", "未找到 .tier-flash 节点（HTML 必须包含闪研区块）")
-    if not medium_blocks:
-        rep.fail("三档结构", "未找到 .tier-medium 节点")
-    if not deep_blocks:
-        rep.fail("三档结构", "未找到 .tier-deep 节点")
-    if not (flash_blocks and medium_blocks and deep_blocks):
-        return
-
-    flash_text = " ".join(flash_blocks)
-    medium_text = flash_text + " " + " ".join(medium_blocks)
-    deep_text = medium_text + " " + " ".join(deep_blocks)
-
-    wf = word_count(flash_text)
-    wm = word_count(medium_text)
-    wd = word_count(deep_text)
-    rep.note(f"字数：闪研≈{wf} 精研≈{wm} 深研≈{wd}")
-
-    # 闪研档不强制扩展比例：闪研 sample 的设计目标就是 30 分钟读完，
-    # 深研/精研 tier 节点存在但不要求字数超过闪研主体。
-    # 只对 medium / deep 档位 sample 施加扩展比例约束。
-    tier = _detect_tier(html)
-    if tier == "flash":
-        rep.note(f"detected tier=flash → 跳过档位字数比例检查")
-        return
-
-    if wf <= 0:
-        rep.fail("字数", "闪研字数为 0")
-        return
-    ratio_m = wm / wf if wf else 0
-    ratio_d = wd / wm if wm else 0
-    if ratio_m < 1.3:
-        rep.fail(
-            "档位差异",
-            f"精研/闪研 = {ratio_m:.2f} < 1.3（精研需要在闪研基础上扩展更多内容）",
-        )
-    if tier == "deep" and ratio_d < 1.5:
-        rep.fail(
-            "档位差异",
-            f"深研/精研 = {ratio_d:.2f} < 1.5（深研需要明显厚于精研）",
-        )
-
 
 def check_no_cdn(html: str, rep: Report) -> None:
     # src= 与 href= 的所有取值
@@ -341,7 +263,6 @@ def check_anti_slop(html: str, rep: Report) -> None:
 
 def run_checks(html: str) -> Report:
     rep = Report()
-    check_tier_word_ratios(html, rep)
     check_no_cdn(html, rep)
     check_viewport(html, rep)
     check_lang(html, rep)

@@ -225,22 +225,8 @@ def _esc(v: Any) -> str:
 
 # ---------- 数据预处理 ----------
 
-REQUIRED_TOP_V02 = ["domain", "tier", "chapters", "facts"]
+REQUIRED_TOP_V02 = ["domain", "chapters", "facts"]
 PLACEHOLDER = "未提供"
-
-# v0.2 章节 id → tier class 映射
-TIER_BY_CHAPTER_ID: Dict[str, str] = {
-    "what-and-why": "flash",
-    "history": "flash",
-    "players": "flash",
-    "insider": "flash",
-    "structural": "medium",
-    "paradigm": "deep",
-    "isomorphism": "deep",
-    "reflexivity": "medium",
-    "learning-path": "deep",
-    "unknowns": "deep",
-}
 
 # 旧 schema 字段（用于检测和 deprecation 提示）
 # 注意：self_check_questions / experts / known_unknowns_data 在 v0.2 仍是合法旁路数据，
@@ -289,17 +275,20 @@ def normalize(data: Dict[str, Any]) -> Dict[str, Any]:
             )
     else:
         # 兼容旧 schema：检查 v0.1 字段
-        for k in ("domain", "tier", "thesis", "facts", "mechanisms", "viewpoints"):
+        for k in ("domain", "thesis", "facts", "mechanisms", "viewpoints"):
             if k not in data or data[k] in (None, "", []):
                 warn(f"缺字段：{k}（注入占位）")
         warn(
             "未检测到 chapters[]（v0.2 schema），退化到 v0.1 旧渲染逻辑——建议升级到 chapters[] 章节弧线"
         )
 
+    # 兼容性：老 sample 可能有 tier 字段，直接忽略
+    if "tier" in data:
+        data.pop("tier", None)
+
     # 顶层占位
     data.setdefault("domain", PLACEHOLDER)
     data.setdefault("domain_slug", "domain")
-    data.setdefault("tier", "medium")
     data.setdefault("preset", "tech")
     data.setdefault("cutoff_date", PLACEHOLDER)
     data.setdefault("subtitle", "")
@@ -391,15 +380,6 @@ def normalize(data: Dict[str, Any]) -> Dict[str, Any]:
     data["grade_c_pct"] = pct_str("C")
     data["grade_d_pct"] = pct_str("D")
 
-    tier = data.get("tier", "medium")
-    tier_label_map = {"flash": "⚡ 闪研", "medium": "📖 精研", "deep": "🔬 深研"}
-    reading_time_map = {
-        "flash": "约 30 分钟",
-        "medium": "约 60 分钟",
-        "deep": "约 90 分钟",
-    }
-    data["tier_label"] = tier_label_map.get(tier, "📖 精研")
-    data["reading_time"] = reading_time_map.get(tier, "约 60 分钟")
     data["fact_count"] = len(data["facts"])
     data.setdefault("domain_name", data.get("domain", PLACEHOLDER))
     data["generation_date"] = datetime.date.today().isoformat()
@@ -413,12 +393,12 @@ def normalize(data: Dict[str, Any]) -> Dict[str, Any]:
 # ---------- HTML 片段预渲染（v0.2 主路径） ----------
 
 def _render_chapters_html(chapters: Sequence[Any]) -> str:
-    """v0.2 主流程：把 chapters[] 渲染成连续 section，每章带 tier-{level} class。
+    """v1.0 主流程：把 chapters[] 渲染成连续 section，统一为 .chapter class。
     narrative_html 直接嵌入（不做 HTML 转义）—— sample 已织入脚注/机制/观点。
     """
     if not chapters:
         return (
-            '<section class="chapter tier-flash" id="chapter-empty">'
+            '<section class="chapter" id="chapter-empty">'
             '<h2>章节内容缺失</h2>'
             '<p class="muted">domain.json 中 chapters[] 为空，无法渲染主体内容。</p>'
             '</section>'
@@ -432,10 +412,9 @@ def _render_chapters_html(chapters: Sequence[Any]) -> str:
         narrative = ch.get("narrative_html") or ""
         if not isinstance(narrative, str):
             narrative = _stringify(narrative)
-        tier_level = TIER_BY_CHAPTER_ID.get(cid, "flash")
         # 关键：narrative_html 直接嵌入，不转义
         blocks.append(
-            f'<section class="chapter tier-{tier_level}" id="chapter-{_esc(cid)}">'
+            f'<section class="chapter" id="chapter-{_esc(cid)}">'
             f'<h2>{title}</h2>\n'
             f'{narrative}\n'
             f'</section>'
@@ -807,7 +786,7 @@ def build_html_fragments(data: Dict[str, Any]) -> None:
 
 def default_template() -> str:
     """模板未就绪时使用的兜底模板，保证脚本可独立运行。
-    包含 v0.2 期望的所有占位符 + 三档 class + 闸门可扫描的元素。
+    包含 v1.0 期望的所有占位符（单档深度产物）+ 闸门可扫描的元素。
     """
     return r"""<!DOCTYPE html>
 <html lang="zh-CN">
@@ -843,16 +822,17 @@ table.source-grading-table { border-collapse: collapse; margin: 1rem 0; }
 table.source-grading-table td, table.source-grading-table th { border: 1px solid var(--rule); padding: .3rem .6rem; }
 .muted { color: var(--muted); }
 .ai-disclaimer-footer { font-size: .85rem; color: var(--muted); border-top: 1px solid var(--rule); padding-top: 1rem; margin-top: 3rem; }
-@media print { @page { size: A4; margin: 1.6cm; } }
+@page { size: A4; margin: 1.6cm; }
+@media print { body { background: #fff; color: #000; } }
 </style>
 </head>
-<body data-tier="{{tier}}">
+<body>
 
 <header class="hero">
   <h1>{{domain_name}}</h1>
   {{#if subtitle}}<p class="subtitle">{{subtitle}}</p>{{/if}}
   <p class="thesis-line">{{thesis_one_liner}}</p>
-  <p class="cutoff muted">cutoff {{cutoff_date}} · {{tier_label}}</p>
+  <p class="cutoff muted">cutoff {{cutoff_date}}</p>
 </header>
 
 <main>
@@ -869,8 +849,8 @@ table.source-grading-table td, table.source-grading-table th { border: 1px solid
   {{{recommendations_html}}}
 </details>
 
-<details id="self-check-fold" class="tier-deep">
-  <summary>自检题 · 读完测自己（深研）</summary>
+<details id="self-check-fold">
+  <summary>自检题 · 读完测自己</summary>
   {{{self_check_html}}}
 </details>
 
@@ -884,15 +864,6 @@ table.source-grading-table td, table.source-grading-table th { border: 1px solid
   cutoff 之后的事件、融资、人事变动一概不掌握；AI 是主流叙事的载体——所有"观点"判断都是可被打脸的假设，请用上方"推荐人/会议"去交叉验证。
   生成于 {{generation_date}}。</p>
 </footer>
-
-<script>
-(function(){
-  var btns = document.querySelectorAll('.tier-btn');
-  btns.forEach(function(b){ b.addEventListener('click', function(){
-    document.body.dataset.tier = b.dataset.tier;
-  });});
-})();
-</script>
 </body>
 </html>
 """
@@ -982,7 +953,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     print(
         f"[render.py] OK → {out_path}\n"
         f"  facts={n_facts} mechanisms={n_mech} viewpoints={n_view} chapters={n_chapters}\n"
-        f"  tier={data.get('tier','medium')}  word_count≈{wc}\n"
+        f"  word_count≈{wc}\n"
         f"  grade_pct: {pcts}"
     )
     return 0

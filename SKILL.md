@@ -1,13 +1,13 @@
 ---
 name: domain-onboarding
-description: 让用户在 30 / 60 / 90 分钟内从 0 到 1 拿下一个领域。把"领域骨架五件套（核心概念图/玩家地图/时间轴/矛盾结构/学习路径）+ 棱镜双轴四层（现象→机制→结构→范式 × 跨领域同构）+ 三层证据链（事实→机制→观点）+ A/B/C/D 来源分级 + 已知的未知清单"蒸馏成单文件典雅 HTML。无论用户说"快速了解 XX 领域"、"入门 XX"、"我下周要谈 XX 给我地图"、"闪研/精研/深研 XX"、"XX onboarding"、"XX primer"、"领域速通"、"我想搞清楚 XX 是怎么回事"、"帮我吃透 XX"、"扫盲 XX"——都用这个 skill；只要话题落在"一整个领域而非单本书或单家公司"且用户希望快速建立系统认知，就触发，**即使用户没说"领域"二字**。不适用：单本书蒸馏（用 book-distiller）、单家公司/产品深度研究（用 prism-research）、单点查询（直接回答）。
+description: 让用户在 60-90 分钟内从 0 到 1 系统性拿下一个领域，单档深度产物。把"领域骨架五件套（核心概念图/玩家地图/时间轴/矛盾结构/学习路径）+ 棱镜双轴四层（现象→机制→结构→范式 × 跨领域同构）+ 三层证据链（事实→机制→观点）+ A/B/C/D 来源分级 + 已知的未知清单"蒸馏成单文件典雅 HTML。无论用户说"快速了解 XX 领域"、"入门 XX"、"我下周要谈 XX 给我地图"、"XX onboarding"、"XX primer"、"领域速通"、"我想搞清楚 XX 是怎么回事"、"帮我吃透 XX"、"扫盲 XX"——都用这个 skill；只要话题落在"一整个领域而非单本书或单家公司"且用户希望快速建立系统认知，就触发，**即使用户没说"领域"二字**。不适用：单本书蒸馏（用 book-distiller）、单家公司/产品深度研究（用 prism-research）、单点查询（直接回答）。
 ---
 
 # Domain Onboarding · 领域速通
 
 ## 核心宪法（先读这一段，再做任何事）
 
-**这个 skill 解决的问题**：让用户在指定时长内从 0 到 1 拿下一个**领域**——不是一本书，不是一个产品，是一整个领域。
+**这个 skill 解决的问题**：让用户在 60-90 分钟内从 0 到 1 系统性拿下一个**领域**——不是一本书，不是一个产品，是一整个领域。单档深度产物，专注极致。
 
 **两种失败模式必须避免**：
 - 只有结构没有事实 — 写出"看上去专业"的水稿
@@ -23,7 +23,6 @@ description: 让用户在 30 / 60 / 90 分钟内从 0 到 1 拿下一个领域�
 
 ### 应该触发（任意一条命中即用本 skill）
 - 用户说"快速了解 XX 领域 / 入门 XX / 我想搞懂 XX / 给我 XX 的地图"
-- 用户说"闪研 / 精研 / 深研 XX"
 - 用户说"XX primer / XX onboarding / 领域速通 / 扫盲 XX"
 - 用户描述场景："我下周要见 XX 客户"、"老板让我评估 XX"、"我想转行做 XX"
 - 用户在没有明确说"领域"的情况下，问的是一个**整体格局**问题（"AI 现在是什么状态"、"REITs 怎么玩"）
@@ -61,10 +60,11 @@ description: 让用户在 30 / 60 / 90 分钟内从 0 到 1 拿下一个领域�
 - 颗粒度：中等 / 超广（建议收敛）/ 超窄（建议改用 X skill）
 - 成熟度：成熟 / 新兴 / 衰退
 - 假设你的水平：零基础 / 邻域转入 / 有基础（猜的，错了告诉我）
-- 档位：闪研 30min / 精研 60min / 深研 90min（默认精研）
 - preset：技术 / 商业 / 金融 / 文化（按领域自选）
 对吗？或者直接说"按你猜的来"我就开干。
 ```
+
+输出统一为单档深度产物（60-90 分钟阅读时长，全部 10 章弧线必含）。
 
 ### Step 2. 选 preset + 构建骨架五件套
 
@@ -105,11 +105,10 @@ description: 让用户在 30 / 60 / 90 分钟内从 0 到 1 拿下一个领域�
 读 `references/fact-mechanism-viewpoint-chain.md`（强制规则），然后调用 `references/analytical-toolbox.md` 选取分析工具——但**不要在正文里念框架名**（详见 `references/method-internalization.md`）。
 
 **事实密度量化指标**（quality_check.py 会扫描）：
-| 档位 | 最少事实锚点 | A+B 级源占比 |
-|------|--------------|--------------|
-| 闪研 ⚡ | ≥15 | ≥40% |
-| 精研 📖 | ≥35 | ≥50% |
-| 深研 🔬 | ≥70 | ≥60% |
+- 最少事实锚点 ≥ 70
+- A+B 级源占比 ≥ 60%
+- 已知的未知 ≥ 12 条
+- 跨学科调用 ≥ 6 把刀
 
 每个机制层陈述 ≥3 个事实锚点支持。每个观点层陈述必须给"反例事实"或"证伪条件"。
 
@@ -157,7 +156,7 @@ domain.json
    ▼
 scripts/render.py
    │
-   ├─ 把 chapters[] 渲染为 <section class="chapter tier-{level}" id="chap-id"><h2>title</h2>{narrative_html}</section>
+   ├─ 把 chapters[] 渲染为 <section class="chapter" id="chapter-{id}"><h2>title</h2>{narrative_html}</section>
    ├─ 把 facts[] 渲染为底部 sources-fold 内的 ol#facts-complete + source-grading-table
    ├─ 把 experts[] 渲染为底部 experts-fold 内的 ul
    ├─ 把 known_unknowns_data[] 渲染为底部 unknowns-data-fold 内的 ul（id="known-unknowns" 在 details 上）
@@ -169,8 +168,8 @@ scripts/render.py
 
 #### 5.4 双闸门验证
 
-- **内容闸**：`scripts/quality_check.py`——扫学究腔黑名单、事实密度（按档位 ≥15/35/70）、机制陈述配 `data-fact-refs` ≥3、观点配 `.counter` 反例、AI disclaimer `id="ai-disclaimer"` 存在、**H1/H2/H3 不出现 5.2 节禁忌词**、推荐 `<li>` ≥3、known-unknowns 区段下 `<li>` ≥N
-- **视觉闸**：`scripts/visual_check.py`——三档差异化字数比例（精研 ≥1.3× 闪研、深研 ≥1.5× 精研）、`.tier-flash / .tier-medium / .tier-deep` 节点存在、`.source-grading-table` 在底部折叠区可达、零外链、SVG 装饰合规、暗色模式可切
+- **内容闸**：`scripts/quality_check.py`——扫学究腔黑名单、事实密度（≥70；事实密度未达标输出 warning 不 fail）、A+B 占比 ≥60%、机制陈述配 `data-fact-refs` ≥3、观点配 `.counter` 反例、AI disclaimer `id="ai-disclaimer"` 存在、**H1/H2/H3 不出现 5.2 节禁忌词**、推荐 `<li>` ≥3、known-unknowns 区段下 `<li>` ≥12
+- **视觉闸**：`scripts/visual_check.py`——`.source-grading-table` 在底部折叠区可达、零外链、SVG 装饰合规、暗色模式可切、@page 打印优化
 
 任一闸门不过 → 返工，不出 HTML。
 
@@ -179,50 +178,39 @@ scripts/render.py
 ```
 ~/workspace/<domain-slug>/
 ├── domain.json          # 结构化中间产物（事实/机制/观点都在这里有锚点）
-└── <domain>.html        # 单文件 HTML（含速读/精研/深研三模式 + 暗色模式）
+└── <domain>.html        # 单文件 HTML（深度产物 + 暗色模式 + A4 打印优化）
 ```
 
 `<domain-slug>` 用 kebab-case 英文（如 `vector-databases`、`japanese-anime-industry`）。
 
-## 三档输出严格嵌套（不是替代）
+## 深度产物厚度规范
 
-读 `references/three-tier-nesting.md`。
-
-```
-闪研 ⚡   = 骨架五件套精简 + 黑话表 + 3 个最重要事实
-精研 📖   = 闪研全部内容 + 机制层 + 反身性元透镜 + 来源分级表
-深研 🔬   = 精研全部内容 + 结构层 + 范式层 + 同构案例 + 学习路径完整版
-```
-
-HTML 用同一文档 + CSS class 切换，用户点 `⚡ 📖 🔬` 按钮升档不丢已读内容。
+读 `references/three-tier-nesting.md`（深度产物厚度规范）。核心要求：≥70 facts / 22000+ 字 / 18+ mechanisms / 14+ viewpoints / 12+ unknowns / 跨学科调用 ≥6 把刀。
 
 ## 强制必出元素清单（缺一项 → 返工）
 
 v0.2 改用**叙事章节为单位**的清单——分析框架（事实层/机制层/观点层/反身性/结构层/范式层/同构）已内化进各章 narrative_html，不再以独立 H2 出现。
 
-### 不论档位，HTML 末尾必须包含（弱化版尾跋 + 折叠区）
+### HTML 末尾必须包含（弱化版尾跋 + 折叠区）
 
 - [ ] **AI 边界提醒**（尾跋小字 · `<footer class="postscript" id="ai-disclaimer">`）：cutoff date + 100 字 disclaimer（"AI 是主流叙事载体，本页判断都是可被打脸的假设"），视觉权重低，不抢戏
 - [ ] **信息来源折叠区**（`<details class="sources-fold">`）：A/B/C/D 等级表 + 完整事实清单（每条 `id="fact-data-N"` 锚点存活，供脚注 hover/click 跳转）
 - [ ] **推荐人 / 账号 / 社区**（`<details class="experts-fold">`）：≥3 条 `<li>`（用户去人肉验证）
-- [ ] **未知边界数据**（`<details class="unknowns-data-fold" id="known-unknowns">`）：旁路 `<ul>` ≥5 条 `<li>`（闸门数据源；正文叙事化的"我（AI）不知道的几件事"在第十章）
+- [ ] **未知边界数据**（`<details class="unknowns-data-fold" id="known-unknowns">`）：旁路 `<ul>` ≥12 条 `<li>`（闸门数据源；正文叙事化的"我（AI）不知道的几件事"在第十章）
 
-### 章节弧线必含（按 tier）
+### 章节弧线必含（全部 10 章）
 
-- **闪研 ⚡**：第 1-4 章
   - [ ] 一、这是什么 · 为什么现在值得花一小时
   - [ ] 二、它怎么走到今天
   - [ ] 三、谁在场上 · 谁在赌什么
   - [ ] 四、圈内人才懂的几件事
-- **精研 📖**：闪研全部 + 第 5、第 8 章
   - [ ] 五、表面之下 · 几条不可变的约束
-  - [ ] 八、主流叙事 · 它如何自我强化又如何崩
-- **深研 🔬**：全部 10 章 + 自检题折叠展开
   - [ ] 六、这是什么时期 · 异端正从边缘浮现
   - [ ] 七、别处的故事 · 镜照本地（叙事中含 ≥2 个跨领域同构案例 + 同构点 / 反同构点叙事化表述）
+  - [ ] 八、主流叙事 · 它如何自我强化又如何崩
   - [ ] 九、接下来你应该读什么 · 信谁（必读 ≥3 / 必跟人 ≥3 / 关键社区 ≥1）
   - [ ] 十、我（AI）不知道的几件事
-  - [ ] 自检题 ≥10 道（嵌在 `<details class="self-check-fold">` 折叠区，仅深研档可见）
+  - [ ] 自检题 ≥10 道（嵌在 `<details class="self-check-fold">` 折叠区）
 
 > v0.1 里"反身性章节 / 行业认知误区 / 结构层提问全部回答 / 跨领域同构 ≥2"等以分析框架命名的清单条目已删除——这些内容现在以**章节叙事**形式呈现，闸门通过 class/id/data-attr 验证而非 H2 标题文本验证。
 
@@ -232,7 +220,7 @@ v0.2 改用**叙事章节为单位**的清单——分析框架（事实层/机�
 - 宋体（衬线）正文 + 等宽体黑话表 + 朱砂色重点 + 水墨 SVG 装饰
 - 单文件、零 CDN、可离线
 - 支持暗色模式（CSS 变量切换，研究类内容长时间阅读必备）
-- A4 打印优化（深研档）
+- A4 打印优化
 
 ## 反 AI Slop 守则
 
@@ -274,7 +262,7 @@ v0.2 改用**叙事章节为单位**的清单——分析框架（事实层/机�
 | `references/source-grading.md` | 标 A/B/C/D 来源时读 |
 | `references/ai-reflexivity-disclaimer.md` | 写最终 disclaimer 必读 |
 | `references/known-unknowns.md` | 写"已知的未知"清单必读 |
-| `references/three-tier-nesting.md` | 三档输出规范 |
+| `references/three-tier-nesting.md` | 深度产物厚度规范（≥70 facts / 22000+ 字 / ≥18 mechanisms / ≥14 viewpoints / ≥12 unknowns / ≥6 把刀） |
 | `references/visual-style-guide.md` | 视觉与排版规范 |
 
 ## scripts 用法

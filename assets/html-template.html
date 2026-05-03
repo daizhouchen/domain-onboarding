@@ -239,9 +239,9 @@
     }
 
     /* ============================================================
-       档位切换器
+       主题切换按钮
        ============================================================ */
-    .tier-bar {
+    .theme-bar {
       position: sticky;
       top: 0;
       z-index: 10;
@@ -253,37 +253,9 @@
       padding-right: var(--gutter);
       display: flex;
       align-items: center;
-      gap: 0.5em;
-      flex-wrap: wrap;
+      justify-content: flex-end;
     }
-    .tier-bar .label {
-      font-family: var(--mono);
-      font-size: 0.78rem;
-      color: var(--ink-faint);
-      letter-spacing: 0.1em;
-      margin-right: 0.4em;
-    }
-    .tier-btn {
-      font-family: var(--serif);
-      font-size: 0.92rem;
-      padding: 0.3em 0.85em;
-      background: transparent;
-      color: var(--ink-soft);
-      border: 1px solid var(--rule);
-      border-radius: 2px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .tier-btn:hover { color: var(--ink); border-color: var(--ink-soft); }
-    .tier-btn.active {
-      background: var(--accent);
-      color: var(--bg);
-      border-color: var(--accent);
-    }
-    .tier-btn .icon { margin-right: 0.3em; }
-
     .theme-btn {
-      margin-left: auto;
       font-family: var(--mono);
       font-size: 0.85rem;
       background: transparent;
@@ -296,42 +268,9 @@
     .theme-btn:hover { color: var(--accent); border-color: var(--accent); }
 
     /* ============================================================
-       档位可见性控制
-       v0.2：以章节为单位，按 tier 控制显隐
-       - 闪研：仅前 4 章（what-and-why / history / players / insider）+ 末尾折叠区
-       - 精研：前 4 章 + 第 5 章（structural）+ 第 8 章（reflexivity）+ 折叠区
-       - 深研：全部 10 章 + 自检题展开 + 折叠区
+       章节基础样式
        ============================================================ */
     .chapter { margin: 0 0 0.5em; }
-
-    /* 默认所有章节都隐藏，再按 tier 打开 */
-    body[data-tier="flash"] .chapter.tier-medium,
-    body[data-tier="flash"] .chapter.tier-deep,
-    body[data-tier="medium"] .chapter.tier-deep {
-      display: none;
-    }
-
-    /* 折叠区按档位的可见性：自检题仅深研可见 */
-    body[data-tier="flash"]  details.self-check-fold,
-    body[data-tier="medium"] details.self-check-fold {
-      display: none;
-    }
-
-    /* 章节差异化视觉提示（不暴露分析框架名，仅小标） */
-    .chapter.tier-medium > h2::after {
-      content: ' ⊕';
-      color: var(--ink-faint);
-      font-size: 0.72em;
-      font-weight: normal;
-      letter-spacing: 0.1em;
-    }
-    .chapter.tier-deep > h2::after {
-      content: ' ⊛';
-      color: var(--accent-soft);
-      font-size: 0.72em;
-      font-weight: normal;
-      letter-spacing: 0.1em;
-    }
 
     /* ============================================================
        事实脚注 · 朴素 [N] 上标
@@ -651,28 +590,18 @@
       .hero .subtitle { font-size: 0.98rem; }
       blockquote.viewpoint { font-size: 1rem; padding: 0.6em 0.9em; }
       p.mechanism { padding-left: 0.8em; }
-      .tier-bar { gap: 0.3em; padding: 0.5em var(--gutter); }
-      .tier-btn { font-size: 0.85rem; padding: 0.28em 0.6em; }
-      .theme-btn { margin-left: 0; }
+      .theme-bar { padding: 0.5em var(--gutter); }
       .fact-ref[data-tip]:hover::after {
         max-width: calc(100vw - 2 * var(--gutter));
       }
     }
 
     /* ============================================================
-       打印优化（深研 A4）
+       打印优化（A4）
        ============================================================ */
+    @page { size: A4; margin: 1.6cm; }
     @media print {
-      .tier-bar, .theme-btn { display: none !important; }
-      body[data-tier="flash"]  .chapter.tier-medium,
-      body[data-tier="flash"]  .chapter.tier-deep,
-      body[data-tier="medium"] .chapter.tier-deep {
-        display: block !important;
-      }
-      body[data-tier="flash"]  details.self-check-fold,
-      body[data-tier="medium"] details.self-check-fold {
-        display: block !important;
-      }
+      .theme-bar, .theme-btn { display: none !important; }
       details { open: true; }
       details > summary { list-style: none; }
       details:not([open]) > *:not(summary) { display: block !important; }
@@ -685,14 +614,10 @@
   </style>
 </head>
 
-<body data-tier="medium">
+<body>
 
-  <!-- 档位 / 主题 切换栏 -->
-  <nav class="tier-bar" role="navigation" aria-label="档位切换">
-    <span class="label">档位</span>
-    <button class="tier-btn" data-tier="flash"  type="button"><span class="icon">⚡</span>闪研</button>
-    <button class="tier-btn active" data-tier="medium" type="button"><span class="icon">📖</span>精研</button>
-    <button class="tier-btn" data-tier="deep"   type="button"><span class="icon">🔬</span>深研</button>
+  <!-- 主题切换栏 -->
+  <nav class="theme-bar" role="navigation" aria-label="主题切换">
     <button class="theme-btn" id="theme-toggle" type="button" aria-label="切换主题">夜读</button>
   </nav>
 
@@ -708,14 +633,13 @@
       <blockquote class="thesis">{{thesis_one_liner}}</blockquote>
       <div class="meta-bar">
         <span>cutoff {{cutoff_date}}</span>
-        <span>{{tier_label}}</span>
       </div>
     </header>
 
     <!-- =======================================================
          主体 · 10 章弧线
          由 render.py 把 chapters[] 渲染成
-           <section class="chapter tier-X" id="chap-id">
+           <section class="chapter" id="chapter-id">
              <h2>章节标题</h2>
              {{ narrative_html }}
            </section>
@@ -736,7 +660,7 @@
          底部折叠区（不抢戏）
          - 信息来源（A/B/C/D 等级表 + 完整事实清单）
          - 推荐人 / 账号 / 社区
-         - 自检题（仅深研档可见）
+         - 自检题
          - 已知未知数据（旁路 ul · 闸门数据源）
          ======================================================= -->
     <section class="folds" aria-label="底部折叠资料">
@@ -752,7 +676,7 @@
         {{{recommendations_html}}}
       </details>
 
-      <details class="self-check-fold tier-deep">
+      <details class="self-check-fold">
         <summary>自检题 · 读完测自己（10 道）</summary>
         {{{self_check_html}}}
       </details>
@@ -782,32 +706,13 @@
   </main>
 
   <!-- =======================================================
-       JavaScript · 档位 / 主题 / 脚注
+       JavaScript · 主题 / 脚注
        ======================================================= -->
   <script>
     (function () {
       'use strict';
 
-      const body = document.body;
-      const STORAGE_TIER = 'do-tier';
       const STORAGE_THEME = 'do-theme';
-
-      /* ----------- 档位切换 ----------- */
-      const tierButtons = document.querySelectorAll('.tier-btn');
-
-      function setTier(tier) {
-        body.dataset.tier = tier;
-        tierButtons.forEach(function (btn) {
-          btn.classList.toggle('active', btn.dataset.tier === tier);
-        });
-        try { localStorage.setItem(STORAGE_TIER, tier); } catch (e) {}
-      }
-
-      tierButtons.forEach(function (btn) {
-        btn.addEventListener('click', function () {
-          setTier(btn.dataset.tier);
-        });
-      });
 
       /* ----------- 主题切换 ----------- */
       const themeBtn = document.getElementById('theme-toggle');
@@ -830,9 +735,6 @@
 
       /* ----------- 恢复偏好 ----------- */
       try {
-        const savedTier = localStorage.getItem(STORAGE_TIER);
-        if (savedTier) setTier(savedTier);
-
         const savedTheme = localStorage.getItem(STORAGE_THEME);
         if (savedTheme) {
           setTheme(savedTheme);
