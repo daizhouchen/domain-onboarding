@@ -1270,4 +1270,234 @@ Pozsar（前 Credit Suisse 货币市场分析师，"Bretton Woods III" 论点提
 不要动 quote 引用（除非整句英文需要中译）。
 不要动 mechanism / viewpoint 块的 class、data-fact-refs 等结构属性。
 
+---
+
+## v1.5 通行中译必用中文（不再首次注释一次后续仍英文）
+
+> 起因：v1.4 把"首次出现加注释"当成全部规则——结果作者注释一次之后，后续段落
+> 反复出现的"Bretton Woods / Keynes / Triffin / Plaza Accord / Federal Reserve"
+> 仍然是英文，整篇读下来还是中英拼贴感。v1.5 规则补丁：**已通行的中译就直接用中文，
+> 不再写英文**——即使是首次出现也不需要英文括号，因为汉语世界这些词汇早已通行。
+
+### 1. 决策树（v1.5 版）
+
+碰到一个英文专有名词，按下面这棵树走：
+
+```
+1. 它有汉语世界通行的中译吗？（"通行"=高校教科书 + 中文媒体常用 + 学术圈共识）
+   是 → 直接用中文（"凯恩斯""布雷顿森林""广场协议"）——首次出现也不加英文括号
+        例外：如果作者怕被误读，可在该术语首次出现处加一次"中文（English）"，
+              但后续必须全部中文。
+   否 → 进入下一步
+2. 它是圈内通行的英文缩写或拉丁词头吗？（"圈内通行"=该领域内中文文献也直接用英文）
+   是 → 保留英文，首次出现加一次"中文释义"括号注释
+        例（向量数据库）：HNSW、ANN、IVF、RAG、API、SaaS
+        例（金融）：IMF、BIS、SDR、SWIFT、Fed
+   否 → 进入下一步
+3. 它是人名 / 公司名 / 产品名 / 学术论文标题吗？
+   人名 → 首次出现"中文音译（English Name，一句话身份）"，后续用中文音译
+        例：佐尔坦 · 波萨尔（Zoltan Pozsar，前瑞信全球策略师）
+   公司/产品名 → 通行的（如英伟达、彭博、路透）用中文，否则保留英文
+   论文标题 → 中文译名 + 英文原标题括号，例《主导货币范式》（Dominant Currency Paradigm）
+```
+
+### 2. 通行中译清单（强制使用中文，不再英文）
+
+下面的术语在汉语世界已经通行——在中文产物里**全文用中文，不需要英文括号**。
+首次出现可视情况加一次英文，**但后续必须全部中文**。
+
+#### 2.1 经济金融领域
+
+| 英文 | 中文（强制） | 通行度 |
+|------|-------------|--------|
+| Bretton Woods | 布雷顿森林 | 高 |
+| Plaza Accord | 广场协议 | 高 |
+| Keynes | 凯恩斯 | 极高 |
+| Triffin | 特里芬 | 高（专业圈） |
+| Eichengreen | 艾肯格林 | 中（专业圈） |
+| Soros | 索罗斯 | 极高 |
+| Friedman | 弗里德曼 | 高 |
+| Kissinger | 基辛格 | 极高 |
+| Kindleberger | 金德尔伯格 | 中 |
+| Federal Reserve | 美联储 | 极高 |
+| World Bank | 世界银行 | 极高 |
+| World Gold Council | 世界黄金协会 | 高 |
+| central bank / central banks | 央行 / 各国央行 | 极高 |
+| Treasury (作为机构) | 美国财政部 | 高 |
+| Treasuries / Treasury bonds | 美债 | 极高 |
+| amateur (中文段落里) | 外行 | 极高 |
+| incumbent (中文段落里) | 在位者 | 高 |
+| world's central bank | 世界央行 | 高 |
+
+#### 2.2 学校 / 媒体
+
+| 英文 | 中文（强制） |
+|------|-------------|
+| Berkeley | 加州伯克利大学 |
+| Harvard | 哈佛 |
+| Princeton | 普林斯顿 |
+| Stanford | 斯坦福 |
+| Cambridge | 剑桥 |
+| Oxford | 牛津 |
+| Yale | 耶鲁 |
+| Bloomberg | 彭博 |
+| Reuters | 路透 |
+| Financial Times | 《金融时报》 |
+| The Economist | 《经济学人》 |
+| Wall Street Journal | 《华尔街日报》 |
+| New York Times | 《纽约时报》 |
+| NVIDIA | 英伟达 |
+
+#### 2.3 公司/产品（保留英文——已是通行品牌识别）
+
+下面这些英文**保留**——它们在中文世界里就是写英文最自然：
+
+- 软件 / 平台：Stripe、GitHub、Notion、ChatGPT、Snowflake、Databricks、Anthropic、OpenAI
+- 数据库：Postgres、pgvector、MongoDB、Redis、Cassandra、Pinecone、Milvus、Weaviate、Qdrant、Vespa
+- 框架：LangChain、LlamaIndex、LangGraph、FAISS、Lucene、Elasticsearch
+- 算法/模型：HNSW、IVF、DiskANN、BERT、BGE、SPLADE、ColBERT、transformer
+
+但**首次出现**必须加一次中文释义括号——例如：
+- "Pinecone（向量数据库 SaaS 头部厂商）"
+- "HNSW（分层可导航小世界图，主流向量索引算法）"
+- "RAG（检索增强生成 retrieval-augmented generation）"
+
+### 3. 缩写注释清单（首次出现必须加中文释义）
+
+经济金融：
+
+| 缩写 | 首次注释 |
+|------|---------|
+| ECB | ECB（欧洲央行） |
+| KYC | KYC（客户身份识别） |
+| AML | AML（反洗钱） |
+| DXY | DXY（美元指数） |
+| TIC | TIC（美国财政部国际资本数据） |
+| SAMA | SAMA（沙特货币局） |
+| PIF | PIF（沙特公共投资基金） |
+| SAFE | SAFE（中国国家外汇管理局） |
+| OFAC | OFAC（美国财政部外国资产控制办公室） |
+| BRICS | BRICS（金砖国家） |
+| SDR | SDR（IMF 特别提款权） |
+| COFER | COFER（IMF 官方外汇储备数据库） |
+| CHIPS | CHIPS（纽约清算所银行间支付系统） |
+| Fedwire | Fedwire（美联储电汇系统） |
+| CIPS | CIPS（人民币跨境支付系统） |
+| IMF | IMF（国际货币基金组织） |
+| BIS | BIS（国际清算银行） |
+| CME | CME（芝加哥商品交易所） |
+| ICE | ICE（洲际交易所） |
+| LME | LME（伦敦金属交易所） |
+| mBridge | mBridge（多边央行数字货币桥） |
+| CBDC | CBDC（央行数字货币） |
+| CFR | CFR（美国外交关系协会） |
+| NDF | NDF（无本金交割远期） |
+
+技术 / SaaS：
+
+| 缩写 | 首次注释 |
+|------|---------|
+| API | API（应用编程接口） |
+| SDK | SDK（软件开发包） |
+| SaaS | SaaS（软件即服务） |
+| GraphQL | GraphQL（查询语言） |
+| OEM | OEM（原始设备制造商） |
+| VC | VC（风险投资） |
+| CDN | CDN（内容分发网络） |
+| TVL | TVL（锁定总价值） |
+| JD | JD（招聘要求） |
+| RAG | RAG（检索增强生成） |
+| ANN | ANN（近似最近邻搜索） |
+| HNSW | HNSW（分层可导航小世界图） |
+| MTEB | MTEB（嵌入模型评测基准） |
+| FAISS | FAISS（Meta 开源向量检索库） |
+| LLM | LLM（大语言模型） |
+| ARR | ARR（年度经常性收入） |
+| QPS | QPS（每秒查询数） |
+
+### 4. 英文书名加中文译名
+
+英文书名出现时必须给中文译名（首次出现）。**模板**：`《中文译名》（English Title）`。
+
+经济金融：
+
+- 《嚣张的特权》（Exorbitant Privilege） · Barry Eichengreen
+- 《全球化资本》（Globalizing Capital） · Eichengreen
+- 《金融炼金术》（The Alchemy of Finance） · Soros
+- 《崩盘》（Crashed） · Adam Tooze
+- 《全球失序》（Global Discord） · Paul Tucker
+- 《主导货币范式》（Dominant Currency Paradigm） · Gita Gopinath（论文）
+- 《Money & Macro》（Pozsar 周报） · 报告类保留英文
+- 《Bretton Woods III》（Pozsar 同名论文） · 概念名保留
+
+技术：
+
+- 学术论文标题首字母大写（IEEE / ACM 风格），但中文产物里加中文导读："xxx 论文（HNSW 的奠基之作）"
+
+### 5. 英文虚词扩展禁用清单（v1.5 加强）
+
+v1.4 已禁用 by/with/like/such as/vs/aka/etc/i.e./e.g./via/per/re。
+v1.5 补充禁用规则——**这些短语在中文段落里禁止出现**：
+
+| 禁用 | 改写 |
+|------|------|
+| `world's central bank` | 世界央行 |
+| `central bank`（句子主语位置） | 央行 |
+| `central banks` | 各国央行 |
+| `amateur`（作普通名词） | 外行 |
+| `incumbent`（作名词） | 在位者 |
+| `swap line` | 互换额度（swap line） |
+| `ground truth`（中文段里） | 真实信号（ground truth） |
+
+### 6. 全章扫描自检（v1.5 新增）
+
+每章写完后跑下面三道检查：
+
+1. **专有名词扫描**：`grep -oE '[A-Z][a-z]+' chapter.html | sort | uniq -c` —— 看高频词，
+   超过 3 次的英文专有名词必须有中文译名（首次出现）。
+2. **首字母大写词扫描**：`grep -oE '[A-Z]{2,}' chapter.html | sort | uniq -c` ——
+   缩写未注释的，回去加注释。
+3. **中英密度**：跑 `python3 scripts/render.py` 看 stderr 输出的 `chinese_pct`——
+   总体 ≥ 75%（金融类）/ ≥ 65%（技术圈类）。
+
+### 7. v1.4 vs v1.5 实例对比
+
+**v1.4 写法**（首次注释一次，后续仍英文）：
+
+> Bretton Woods（布雷顿森林会议，1944）确立了美元金本位。Bretton Woods 体系
+> 在 1971 年崩溃后，世界进入浮动汇率时代。Triffin（特里芬，比利时经济学家）
+> 早在 1960 年就预言了 Bretton Woods 的崩溃。
+
+**v1.5 写法**（首次以中文为主，后续全中文）：
+
+> 布雷顿森林（Bretton Woods）会议在 1944 年确立美元金本位。布雷顿森林体系
+> 在 1971 年崩溃后，世界进入浮动汇率时代。特里芬（Triffin，比利时经济学家）
+> 早在 1960 年就预言了布雷顿森林的崩溃。
+
+**v1.4 写法**（缩写连环不注释）：
+
+> ECB 和 Fed 都用 swap line 网络稳定离岸美元市场，CHIPS 和 Fedwire 是核心清算
+> 系统，OFAC 制裁清单、SAFE 数据、TIC 数据都需要交叉读才能看到全景。
+
+**v1.5 写法**（首次注释 + 后续保留缩写）：
+
+> ECB（欧洲央行）和美联储都用 swap line（互换额度）网络稳定离岸美元市场，
+> CHIPS（纽约清算所银行间支付系统）和 Fedwire（美联储电汇系统）是核心清算
+> 系统，OFAC（美国财政部外国资产控制办公室）制裁清单、SAFE（中国国家外汇
+> 管理局）数据、TIC（美国财政部国际资本数据）都需要交叉读才能看到全景。
+
+### 8. 给 sample 改的优先级（v1.5 修订）
+
+如果是给已有 sample 补注释，优先级为：
+
+1. **第 9 章（学习路径）**：清单页人名 / 论文 / 数据源最密——必先做
+2. **第 4 章（圈内黑话）**：黑话密度最高
+3. **第 3 章（玩家地图）**：人名 / 公司名首次出现处
+4. **第 5 章（结构层）**：抽象英文术语多
+5. **第 7 章（别处的故事）**：跨产品对照，公司名密度高
+
+每个术语只改第一次出现的位置；后续出现保留原样。
+不要动 mechanism / viewpoint / chapter-summary / quote / cite 块的内部结构。
+不要破坏 fact-ref 锚点（`<sup><a id="fact-N">[N]</a></sup>`）。
+
 
