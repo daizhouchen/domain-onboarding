@@ -1689,10 +1689,54 @@ def word_count(text: str) -> int:
     return cn + en
 
 
+def _strip_html_tags(s: str) -> str:
+    """剥离 HTML 标签 + script/style，得到纯文本（用于英文密度统计）。"""
+    s = re.sub(r"<script\b[^>]*>.*?</script>", " ", s, flags=re.DOTALL | re.IGNORECASE)
+    s = re.sub(r"<style\b[^>]*>.*?</style>", " ", s, flags=re.DOTALL | re.IGNORECASE)
+    s = re.sub(r"<[^>]+>", " ", s)
+    # 解 HTML 实体（最简版，足够估字符占比）
+    try:
+        s = html.unescape(s)
+    except Exception:
+        pass
+    return s
+
+
+def lang_density(text: str) -> Dict[str, float]:
+    """
+    扫纯文本，返回中英字符密度。
+    - chinese: 0x4E00-0x9FFF（CJK 统一汉字主区）字符数
+    - english: ASCII 英文字母 [A-Za-z]
+    - cn_pct / en_pct：在两者总和里的占比（忽略空白、数字、标点）
+    """
+    n_cn = sum(1 for c in text if "一" <= c <= "鿿")
+    n_en = sum(1 for c in text if ("a" <= c.lower() <= "z"))
+    total = n_cn + n_en
+    cn_pct = (n_cn * 100.0 / total) if total else 0.0
+    en_pct = (n_en * 100.0 / total) if total else 0.0
+    return {"cn": n_cn, "en": n_en, "cn_pct": cn_pct, "en_pct": en_pct}
+
+
+def _default_output_path(in_path: Path, data: Dict[str, Any]) -> Path:
+    """
+    用户未传 -o 时，默认输出到与 input.json 同目录、文件名为 <domain>.html。
+    domain 字段优先取中文 domain，没有则回退到 domain_slug，再没有则用 'output'。
+    """
+    domain_name = data.get("domain") or data.get("domain_slug") or "output"
+    # 防御一下文件系统不友好的字符（保留中文 + 字母数字 + 常见间隔符）
+    safe = re.sub(r'[\\/:*?"<>|]+', "_", str(domain_name)).strip() or "output"
+    return in_path.resolve().parent / f"{safe}.html"
+
+
 def main(argv: Optional[Sequence[str]] = None) -> int:
     ap = argparse.ArgumentParser(description="domain.json → 单文件 HTML 渲染器")
     ap.add_argument("input", help="domain.json 路径")
-    ap.add_argument("-o", "--output", required=True, help="输出 HTML 路径")
+    ap.add_argument(
+        "-o",
+        "--output",
+        default=None,
+        help="输出 HTML 路径（v1.4 起可省略：默认用 <domain>.html，中文域名）",
+    )
     ap.add_argument(
         "--template",
         default=None,
@@ -1726,7 +1770,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     data = normalize(data)
     out = render(data, template)
 
-    out_path = Path(args.output)
+    # v1.4：若用户没传 -o，默认用 <domain>.html（中文文件名），同 input 目录
+    if args.output:
+        out_path = Path(args.output)
+    else:
+        out_path = _default_output_path(in_path, data)
+
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(out, encoding="utf-8")
 
@@ -1752,13 +1801,26 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     # v1.1 新占位符注入数：从 out 中扫，便于看见 nav/toc 是否真的进了模板
     nav_hits = len(re.findall(r'class="nav-item"', out))
     toc_hits = len(re.findall(r'data-chapter-id="chapter-', out))
+    # v1.4：英文字符密度统计（只扫 narrative_html 纯文本，避开 quote、源标注、代码区）
+    narrative_plain = _strip_html_tags(chapters_blob) if chapters_blob else ""
+    dens = lang_density(narrative_plain)
+    threshold_warn = 30.0  # 英文字符占比超过 30% → stderr warning（不 fail）
     print(
         f"[render.py] OK → {out_path}\n"
         f"  facts={n_facts} mechanisms={n_mech} viewpoints={n_view} chapters={n_chapters}\n"
         f"  word_count≈{wc}\n"
         f"  grade_pct: {pcts}\n"
-        f"  v1.1: chapter_nav={nav_hits} side_toc={toc_hits}"
+        f"  v1.1: chapter_nav={nav_hits} side_toc={toc_hits}\n"
+        f"  v1.4 lang: chinese_pct={dens['cn_pct']:.1f}% "
+        f"(英文字符占比 {dens['en_pct']:.1f}% — 阈值参考 ≤25%)"
     )
+    if dens["en_pct"] > threshold_warn:
+        print(
+            f"[render.py warning] 英文字符占比 {dens['en_pct']:.1f}% 超过 {threshold_warn:.0f}% — "
+            "可能拽洋文过头，建议给英文术语加中文括号或改成中文为主。"
+            "详见 references/narrative-style-guide.md 的 v1.4 语言风格规则。",
+            file=sys.stderr,
+        )
     return 0
 
 

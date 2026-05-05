@@ -1092,3 +1092,182 @@ CSS 视觉建议：`.chapter-summary { color: var(--ink-light); font-size: 0.92e
 
 > 这 8 条 checklist 和 v0.2 的 7 条自检清单（第 12 节）不重复——v0.2 管"分析框架是否被内化"，v0.3 管"认知规律是否被强化"。两套清单都要跑。
 
+---
+
+## v1.4 语言风格规则（中英文混用）
+
+> 起因：用户反馈"给我中文产物但中间莫名其妙夹杂很多英文，很突然，给人拽洋文的感觉"。
+> 这一节定下落地规则——以中文为主语言，英文出现必须有理由、必须有注释。
+
+### 1. 三套首次出现模板
+
+英文术语首次出现，按下面三个模板挑一个用：
+
+**模板 A · 英文（中文释义）** —— 适用于：完全没有通行中译的圈内黑话。
+
+```
+HNSW（分层可导航小世界图）
+RAG（检索增强生成）
+ANN（近似最近邻）
+SaaS（软件即服务）
+RTGS（实时全额结算）
+ColBERT / 后期交互（late interaction）
+```
+
+**模板 B · 中文（英文）** —— 适用于：已经有通行中译的术语，写中文更自然。
+
+```
+特里芬难题（Triffin Dilemma）
+离岸美元（Eurodollar）
+量化宽松（QE）
+布雷顿森林体系（Bretton Woods）
+代理行（correspondent banking）
+召回率（recall）
+交叉编码器（cross-encoder）
+```
+
+**模板 C · 英文（一句话身份）** —— 适用于：人名 / 公司名带身份说明。
+
+```
+Edo Liberty（Pinecone CEO，前 AWS SageMaker 工程师）
+Andrew Kane（pgvector 维护者，加拿大独立开发者）
+Pozsar（前 Credit Suisse 货币市场分析师，"Bretton Woods III" 论点提出者）
+凯恩斯（Keynes，英国经济学家，1944 年布雷顿森林会议英方代表）
+```
+
+### 2. 首次注释优先级决策树
+
+碰到一个英文词，按下面这棵树走：
+
+```
+这个英文词圈外人能否秒懂？
+  是 → 保留英文，不注释
+        （例：API、SaaS、CEO、CPU、GPU、Excel——属于通用知识）
+  否 → 这个词中文译法是否通行？
+         是 → 用模板 B：中文为主 + 英文括号
+                （例："特里芬难题（Triffin Dilemma）"）
+         否 → 用模板 A：英文 + 一句话括号
+                （例："HNSW（分层可导航小世界图）"）
+
+如果是人名 / 公司名 / 产品名：
+  → 知名 + 中译通行 → 模板 B（凯恩斯（Keynes））
+  → 不知名 → 模板 C（Edo Liberty（Pinecone CEO））
+```
+
+### 3. 括号位置与内容规则
+
+- **中文为主时**：括号紧跟中文，里面放英文（可加简短补充）
+  - 标准：`特里芬难题（Triffin Dilemma）`
+  - 加补充：`特里芬难题（Triffin Dilemma · 储备货币内在悖论）`
+- **英文为主时**：括号紧跟英文，里面放中文释义
+  - 标准：`HNSW（分层可导航小世界图）`
+  - 加补充：`HNSW（分层可导航小世界图，向量检索主流索引）`
+- **括号内只放一个东西**：要么英文要么释义，不要塞太多——超过 12 个汉字宽就该换更短的版本
+
+### 4. 重复出现规则
+
+- 同一术语**首次注释一次**，后续直接用主语言（看你选了模板 B 还是模板 A）
+- 跨章节如果间隔 ≥3 章可以再注释一次（防止读者忘）—— 不强制
+- 已经注释过的术语不要再加括号——这是 AI 最常犯的低级毛病
+
+### 5. 禁用英文虚词清单（≥10 个）
+
+下面这些英文虚词、连接词、短语在中文产物里**禁止使用**——必须改成中文表达：
+
+| 禁用 | 改写 |
+|------|------|
+| `by` | 由 / 通过 / 经 |
+| `with` | 与 / 和 / 加 / 配 / 带着 |
+| `like` / `such as` | 比如 / 例如 / 像 / 譬如 |
+| `vs.` / `vs` | 对比 / 还是 / 或 / 和 |
+| `a.k.a.` | 即 / 又称 / 也就是 |
+| `etc.` | 等 / 等等 / 之类 |
+| `i.e.` | 即 / 也就是 |
+| `e.g.` | 例如 / 比如 |
+| `aka` | 也叫 / 又叫 |
+| `vs` 用于对比 | 改"还是"或"对比" |
+| `via` | 经由 / 通过 |
+| `per` | 按 / 每 |
+| `re:` | 关于 / 就 …… 而言 |
+
+### 6. 整段质量自检 5 问
+
+写完一段，回头读一遍，问自己 5 个问题——任何一个答 yes 就要改：
+
+1. 这段读起来流畅吗？英文是不是打断了节奏？
+2. 第一次出现的英文术语都加了括号注释吗？
+3. 圈外读者能不能读懂？还是只对圈内人友好？
+4. 有没有为了显得专业而强行用英文？（把"用户"写成 user 之类）
+5. 整段英文字符占比是否 > 30%（quote 引用除外）？
+
+### 7. 烂例与改进对照（≥5 组）
+
+**烂例 1**（technical 段落英文堆砌）：
+
+> Pinecone 由 Edo Liberty 创立，他是 ex-AWS SageMaker engineer，更早 at Yahoo Research 做 similarity search……
+
+**改进**：
+
+> Pinecone 由 Edo Liberty（Pinecone CEO）创立——他从 AWS SageMaker 团队出来，更早在 Yahoo 研究院做相似度搜索研究。
+
+**烂例 2**（金融段落术语未注释）：
+
+> 60 年代美元贬值压力来自 Triffin Dilemma：要给世界提供 liquidity 就必须 deficit，但 deficit 多了 confidence 就崩。
+
+**改进**：
+
+> 60 年代美元贬值压力来自特里芬难题（Triffin Dilemma）：要给世界提供流动性就得长期赤字，但赤字一多，外界对美元的信心就崩。
+
+**烂例 3**（圈内黑话糊脸）：
+
+> 这就是经典的 disruption from below——the incumbent 主动 ignore 低端市场。
+
+**改进**：
+
+> 这就是经典的低端颠覆（disruption from below）——领先者主动忽略低端市场。
+
+**烂例 4**（指标罗列像简历）：
+
+> recall 99% latency p99 50ms throughput 1000 QPS
+
+**改进**：
+
+> 召回率 99% / P99 延迟 50ms / 吞吐 1000 QPS（圈内简历级数字）
+
+**烂例 5**（人名+职位拽洋文）：
+
+> Pozsar 在 2022 年提出 Bretton Woods III thesis——the post-2022 commodity-backed world order。
+
+**改进**：
+
+> Pozsar（前 Credit Suisse 货币市场分析师）在 2022 年提出"布雷顿森林 III"论点——一个由商品背书的战后新秩序。
+
+**烂例 6**（连接词偷懒）：
+
+> 主流玩家 like Pinecone, Weaviate, Milvus 都在 2023 之后转向 hybrid search etc.
+
+**改进**：
+
+> 主流玩家比如 Pinecone、Weaviate、Milvus，都在 2023 年之后转向混合检索（hybrid search）等方向。
+
+**烂例 7**（quote 没解读）：
+
+> Kissinger 说："Whoever controls the food controls the people; whoever controls the energy controls entire continents; whoever controls the money controls the world."
+
+**改进**：
+
+> 基辛格（Kissinger）说："谁控制了粮食，谁就控制了人；谁控制了能源，谁就控制了整片大陆；谁控制了货币，谁就控制了世界。" —— 这句话被引用得太多以至于成了陈词，但 1973 年油价冲击之后，能源、粮食、货币三条控制线确实在那十年里被一并按上了美元。
+
+### 8. 给 sample 改的优先级
+
+如果是给已有 sample 补注释（不重写章节），优先改下面三类：
+
+1. **第 4 章（圈内黑话）**：黑话密度最高，最突兀
+2. **第 5 章（结构层）**：抽象英文术语多
+3. **第 3 章（玩家地图）**：人名 / 公司名首次出现处
+
+每个术语只改第一次出现的位置；后续出现保留原样（已经被前面那次注释过了）。
+不要动 quote 引用（除非整句英文需要中译）。
+不要动 mechanism / viewpoint 块的 class、data-fact-refs 等结构属性。
+
+
