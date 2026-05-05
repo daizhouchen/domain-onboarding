@@ -6,17 +6,21 @@ quality_check.py — 内容闸门（domain-onboarding skill）
 扫描 render.py 产出的单文件 HTML，跑内容侧硬约束。任一项失败即退出码 1，
 打印每条 violation（中文 + 具体定位）。
 
-检查项（v1.0：单档深度产物 · 阈值统一到深研档要求）
-1. 事实密度：fact-N 锚点数 ≥ 70（未达标输出 warning，不 fail——X2 在并行加深内容）
-2. A+B 级源占比：≥60%（解析 .source-grading-table）
-3. 三层链完整性：每个 .mechanism 至少 cite 3 个 fact 锚点；
+检查项（v2.0：单档深度产物 · 阈值统一到深研档要求 · 新增语言风格闸门）
+1. 整篇英文密度（v2.0 新）：英文字符占比 > 30% 直接 fail，> 25% warn
+2. 章节级英文密度（v2.0 新）：单章 > 35% 直接 fail（精确定位"中英混乱"章节）
+3. 未注释英文术语扫描（v2.0 新）：扫首字母大写英文词 30 字符内是否有中文括号注释；
+   ≥30 个未注释 fail，否则 warn（启发式，含 ENGLISH_TERM_WHITELIST 圈内通行词）
+4. 事实密度：fact-N 锚点数 ≥ 70（未达标输出 warning，不 fail——X2 在并行加深内容）
+5. A+B 级源占比：≥60%（解析 .source-grading-table）
+6. 三层链完整性：每个 .mechanism 至少 cite 3 个 fact 锚点；
    每个 .viewpoint 必须含反例话语（counter_evidence 文本或 .counter 子节点）
-4. 学究腔黑名单扫描（FORBIDDEN_TERMS 在正文 hit 任一即报错；附录区段豁免）
-5. AI 自反性 disclaimer 必出：id="ai-disclaimer" + cutoff date + ≥3 个 expert 推荐
-6. 已知的未知清单：≥12 条
-7. 单边叙事检测：每个 viewpoint section 出现至少一个反对话语标志
-8. 来源分级表必出：.source-grading-table 存在
-9. H1/H2/H3 不暴露分析框架：标题文字不含"事实层/机制层/观点层/
+7. 学究腔黑名单扫描（FORBIDDEN_TERMS 在正文 hit 任一即报错；附录区段豁免）
+8. AI 自反性 disclaimer 必出：id="ai-disclaimer" + cutoff date + ≥3 个 expert 推荐
+9. 已知的未知清单：≥12 条
+10. 单边叙事检测：每个 viewpoint section 出现至少一个反对话语标志
+11. 来源分级表必出：.source-grading-table 存在
+12. H1/H2/H3 不暴露分析框架：标题文字不含"事实层/机制层/观点层/
    反身性/结构层/范式层/三层证据链/骨架·一/二/三/四/五"等框架名，应改用
    问题驱动的叙事化标题
 
@@ -126,6 +130,70 @@ HEADING_FORBIDDEN_TERMS: List[str] = [
 ]
 
 
+# v2.0：英文专有名词白名单——圈内通行、不需要中文括号注释的术语。
+# 启发式扫描在文中遇到这些词不算"未注释"。维护原则：
+#   - 只放真正圈内通行的（媒体/教科书都直接用英文）
+#   - 不放冷门人名 / 不放公司细分产品（OpenAI 在白名单，但 ChatGPT 之类本身就是英文专名也加）
+#   - 缩写优先（API/SDK/GPU），全称如果中文圈也常用英文则加
+ENGLISH_TERM_WHITELIST = {
+    # 技术通用缩写
+    "API", "SDK", "SaaS", "IaaS", "PaaS", "GPU", "CPU", "TPU", "NPU", "ASIC",
+    "FPGA", "CDN", "DNS", "HTTP", "HTTPS", "TCP", "UDP", "IP", "URL", "URI",
+    "JSON", "XML", "YAML", "CSV", "HTML", "CSS", "REST", "RPC", "gRPC",
+    "OAuth", "JWT", "TLS", "SSL", "VPC", "DDoS",
+    # AI/ML
+    "AI", "ML", "DL", "NLP", "CV", "RL", "LLM", "VLM", "MLLM", "MoE",
+    "SFT", "RLHF", "DPO", "PPO", "RAG", "CoT", "ICL",
+    "SOTA", "MLOps", "AGI", "ASI",
+    "Transformer", "BERT", "GPT", "ChatGPT", "Claude", "Gemini", "Llama",
+    "Mistral", "DeepSeek", "Qwen",
+    # 商业/金融
+    "CEO", "CTO", "CFO", "COO", "CMO", "CIO", "VP", "PM", "PMF",
+    "VC", "PE", "LP", "GP", "IPO", "M&A", "SPAC", "ARR", "MRR", "LTV", "CAC",
+    "B2B", "B2C", "C2C", "DTC", "P2P", "OEM", "ODM", "OKR", "KPI", "ROI",
+    "GDP", "CPI", "PPI", "PMI", "GAAP", "IFRS", "EBITDA", "EPS", "PE",
+    "GMV", "DAU", "MAU", "WAU", "ARPU",
+    # 国际机构
+    "IMF", "BIS", "OECD", "WTO", "NATO", "EU", "UN", "G7", "G20", "ASEAN",
+    "BRICS", "IEA", "OPEC", "FAO", "WHO", "UNESCO", "ICO", "ICC",
+    # 平台/公司（圈内即文化通用）
+    "GitHub", "GitLab", "Bitbucket", "Twitter", "X", "YouTube", "TikTok",
+    "Reddit", "Discord", "Slack", "Telegram", "WhatsApp", "LinkedIn",
+    "Facebook", "Instagram", "WeChat", "Weibo",
+    "iOS", "macOS", "Linux", "Ubuntu", "Debian", "Windows", "Android",
+    "Docker", "Kubernetes", "Terraform", "Ansible",
+    "OpenAI", "Anthropic", "Google", "Alphabet", "Meta", "Microsoft",
+    "Amazon", "Apple", "Tesla", "Nvidia", "Intel", "AMD", "ARM", "TSMC",
+    "AWS", "GCP", "Azure", "Cloudflare", "Vercel", "Netlify", "Stripe",
+    "ByteDance", "Tencent", "Alibaba", "Baidu", "Huawei", "Xiaomi",
+    "Pinecone", "Weaviate", "Milvus", "Qdrant", "Vespa", "Chroma",
+    "Elasticsearch", "ClickHouse", "Snowflake", "Databricks",
+    "PostgreSQL", "Postgres", "MySQL", "MongoDB", "Redis", "Cassandra",
+    "Kafka", "RabbitMQ", "Spark", "Flink", "Hadoop",
+    "pgvector", "FAISS", "ScaNN", "Annoy", "HNSW",
+    # 编程语言/框架
+    "JavaScript", "TypeScript", "Python", "Rust", "Go", "Java", "Kotlin",
+    "Swift", "Ruby", "Scala", "Clojure", "Haskell", "Erlang", "Elixir",
+    "C", "C++", "C#", "PHP", "SQL",
+    "React", "Vue", "Angular", "Svelte", "Next.js", "Nuxt",
+    "Django", "Flask", "FastAPI", "Rails", "Spring", "Express",
+    "PyTorch", "TensorFlow", "JAX", "NumPy", "Pandas",
+    # 协议/数据/算法
+    "PDF", "PNG", "JPG", "GIF", "MP3", "MP4", "WebP", "SVG",
+    "ASCII", "UTF", "Unicode",
+    "SHA", "MD5", "RSA", "ECC", "AES",
+    # 货币/市场
+    "USD", "EUR", "JPY", "CNY", "RMB", "GBP", "HKD", "SGD",
+    "BTC", "ETH", "USDC", "USDT", "DeFi", "NFT", "DAO",
+    "FOMC", "Fed", "ECB", "PBOC", "BOJ", "Treasury",
+    # 学术领域常见
+    "PhD", "MBA", "BSc", "MSc",
+    "MIT", "Stanford", "Harvard", "Berkeley", "Caltech", "CMU",
+    # 单字母/极短常用词不会被扫描（len < 3 已过滤），下面这些是 ≥3 字母但圈内通用
+    "FAQ", "TODO", "FIXME", "WIP", "MVP", "POC", "RFC", "EOL",
+}
+
+
 # 工具索引附录区段（FORBIDDEN_TERMS 在这里出现豁免）
 TOOL_INDEX_MARKERS = [
     "id=\"tool-index\"",
@@ -212,6 +280,142 @@ class Report:
 
     def note(self, msg: str) -> None:
         self.notes.append(msg)
+
+
+def check_chinese_density(html_text: str, rep: Report) -> None:
+    """v2.0：整篇英文密度闸门——> 30% fail，> 25% warn，> 20% note 健康。
+
+    和 render.py 的 lang_density 对齐：先剥 script/style 再剥标签，统计中英字符占比。
+    超 30% 阈值意味着产物中英混乱、模型应在生成阶段就用中文为主，不是后处理硬替换。
+    """
+    text = strip_tags(html_text)  # 已剥 script/style + 所有标签
+    cn_chars = sum(1 for c in text if "一" <= c <= "鿿")
+    en_chars = sum(1 for c in text if c.isascii() and c.isalpha())
+    total = cn_chars + en_chars
+    if total == 0:
+        return
+
+    en_pct = en_chars * 100.0 / total
+    if en_pct > 30:
+        rep.fail(
+            "语言风格",
+            f"英文字符占比 {en_pct:.1f}% > 30% 阈值——产物中英混乱，"
+            f"模型应在生成阶段就用中文为主，不是后处理（cn={cn_chars}, en={en_chars}）",
+        )
+    elif en_pct > 25:
+        rep.warn(
+            "语言风格",
+            f"英文字符占比 {en_pct:.1f}% 偏高（25-30% 之间），"
+            f"建议检查是否有未注释的英文术语",
+        )
+    elif en_pct > 20:
+        rep.note(f"[语言风格] 英文字符占比 {en_pct:.1f}% 健康范围（20-25%）")
+    else:
+        rep.note(f"[语言风格] 英文字符占比 {en_pct:.1f}% 良好")
+
+
+def check_chinese_density_per_chapter(html_text: str, rep: Report) -> None:
+    """v2.0：章节级英文密度——单章 > 35% fail，> 25% warn。精确定位中英混乱章节。
+
+    匹配 <section class="chapter ..." id="chapter-XXX">...</section> 结构。
+    样本字符总数 < 100 跳过（章节太短测不准）。
+    """
+    chapter_re = re.compile(
+        r'<section\s+class\s*=\s*["\'][^"\']*\bchapter\b[^"\']*["\'][^>]*\bid\s*=\s*["\']chapter-([^"\']+)["\'][^>]*>',
+        re.IGNORECASE,
+    )
+    for m in chapter_re.finditer(html_text):
+        chap_id = m.group(1)
+        # 用 depth 配对找闭合 </section>
+        start = m.end()
+        depth = 1
+        i = start
+        open_pat = re.compile(r"<section\b", re.IGNORECASE)
+        close_pat = re.compile(r"</section\s*>", re.IGNORECASE)
+        end = len(html_text)
+        while i < len(html_text):
+            o = open_pat.search(html_text, i)
+            c = close_pat.search(html_text, i)
+            if not c:
+                break
+            if o and o.start() < c.start():
+                depth += 1
+                i = o.end()
+            else:
+                depth -= 1
+                if depth == 0:
+                    end = c.start()
+                    break
+                i = c.end()
+        chap_html = html_text[start:end]
+        text = strip_tags(chap_html)
+        cn_chars = sum(1 for c in text if "一" <= c <= "鿿")
+        en_chars = sum(1 for c in text if c.isascii() and c.isalpha())
+        total = cn_chars + en_chars
+        if total < 100:
+            continue
+        en_pct = en_chars * 100.0 / total
+        if en_pct > 35:
+            rep.fail(
+                "章节英文密度",
+                f"第 {chap_id} 章英文占比 {en_pct:.1f}% > 35% — 这一章需要重写为中文为主",
+            )
+        elif en_pct > 25:
+            rep.warn(
+                "章节英文密度",
+                f"第 {chap_id} 章英文占比 {en_pct:.1f}% 偏高（建议检查未注释英文术语）",
+            )
+
+
+def check_unannotated_english_terms(html_text: str, rep: Report) -> None:
+    """v2.0：扫描未注释英文专有名词。启发式：找首字母大写 ≥3 字母的英文词，
+    检查前后 30 字符内是否有中文括号注释（中文括号 `（中文`/英文括号 `(中文`）；
+    或词本身在 ENGLISH_TERM_WHITELIST 内。
+
+    放 warn 级（启发式可能误报，比如人名首次出现已加身份注释但被剥到注释外了）。
+    可疑词数 ≥ 30 时升级 fail——大量未注释意味着确实有"中英混乱"问题。
+    """
+    text = strip_tags(html_text)
+    # 找首字母大写、连续 ≥3 个 ASCII 字母的词；可拼接多个 PascalCase（如 "OpenAI Anthropic"）
+    term_re = re.compile(r"\b([A-Z][A-Za-z]{2,}(?:\s+[A-Z][A-Za-z]{2,})*)\b")
+
+    found_terms: Dict[str, int] = {}  # term → 首次出现 pos
+    for m in term_re.finditer(text):
+        term = m.group(1)
+        if term in ENGLISH_TERM_WHITELIST:
+            continue
+        # 拆开复合词，如果每个组成都在白名单内也算白
+        parts = term.split()
+        if len(parts) > 1 and all(p in ENGLISH_TERM_WHITELIST for p in parts):
+            continue
+        if len(term.replace(" ", "")) < 3:
+            continue
+        # 检查前后 30 字符是否有中文括号注释
+        start = max(0, m.start() - 30)
+        end = min(len(text), m.end() + 30)
+        context = text[start:end]
+        # 中文圆括号或半角括号后接中文字符（圈内常用注释格式：英文（中文））
+        if re.search(r"（[一-鿿]", context) or re.search(r"\([一-鿿]", context):
+            continue
+        # 第一次出现记录（重复出现不重复计数）
+        if term not in found_terms:
+            found_terms[term] = m.start()
+
+    if not found_terms:
+        return
+    n = len(found_terms)
+    sample = list(found_terms.keys())[:10]
+    msg = (
+        f"检测到 {n} 个英文专有名词没有中文括号注释（前 10 个）："
+        f"{', '.join(sample)}"
+    )
+    if n >= 30:
+        rep.fail(
+            "未注释英文术语",
+            msg + f"——数量 {n} ≥ 30 升级 fail，圈外读者门槛过高",
+        )
+    else:
+        rep.warn("未注释英文术语", msg)
 
 
 def check_fact_density(html_text: str, rep: Report) -> int:
@@ -482,8 +686,16 @@ def check_known_unknowns(html_text: str, rep: Report) -> None:
 
 def run_checks(html_text: str) -> Report:
     rep = Report()
-    rep.note("v1.0 单档深度产物 · 阈值 ≥70 facts / ≥60% A+B / ≥12 已知的未知")
+    rep.note(
+        "v2.0 单档深度产物 · 阈值 ≥70 facts / ≥60% A+B / ≥12 已知的未知 / "
+        "整篇英文≤30% / 单章英文≤35%"
+    )
 
+    # v2.0：语言风格优先级最高，三项语言闸门放最前
+    check_chinese_density(html_text, rep)
+    check_chinese_density_per_chapter(html_text, rep)
+    check_unannotated_english_terms(html_text, rep)
+    # 内容侧硬约束
     check_fact_density(html_text, rep)
     check_grade_table(html_text, rep)
     check_three_layer_chain(html_text, rep)
