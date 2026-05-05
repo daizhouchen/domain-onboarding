@@ -67,3 +67,5 @@ evals/runs/
 # --- 日志 ---
 *.log
 logs/
+# v1.5：sample 渲染产物不入库
+evals/*.html
