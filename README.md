@@ -1,3 +1,13 @@
+<!-- daizhouchen-banner-begin -->
+<p align="center">
+  <img src="assets/hero.png" alt="domain-onboarding" width="100%"/>
+</p>
+
+> **60-90 分钟从 0 到 1 拿下一个领域。骨架五件套 · 棱镜双轴四层 · 已知的未知清单。**
+>
+> *from zero to a domain map in 60-90 minutes.*
+<!-- daizhouchen-banner-end -->
+
 # Domain Onboarding · 领域速通
 
 > 60-90 分钟 · 从 0 到 1 系统性拿下一个领域 · 单档深度产物 · 单文件典雅 HTML
@@ -299,3 +309,9 @@ cat evals/evals.json
 MIT — 见 [LICENSE](./LICENSE)。
 
 随便改、随便用、商用也行，原始版权声明保留即可。
+
+---
+<!-- daizhouchen-footer-begin -->
+
+Part of [**daizhouchen 实验集**](https://github.com/daizhouchen) → 一个 AI 应用创造者的实验现场。
+<!-- daizhouchen-footer-end -->
